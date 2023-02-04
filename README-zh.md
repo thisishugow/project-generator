@@ -1,3 +1,17 @@
+# Git Information
+- git config user.name hugo
+- git config user.email hugo@pharmquer.com
+- git hugo@192.168.75.141:/home/hugo/git/vue-admin-template
+
+# Version  
+- Version: v0.0.0
+- Description: prototype of pharmquer, containing:
+   > login api  
+   > privilege control  
+   > query form and table-viewer:  
+   > - a selection dialog
+   > - a complex-table conponent  
+
 # vue-admin-template
 
 > 这是一个极简的 vue admin 管理后台。它只包含了 Element UI & axios & iconfont & permission control & lint，这些搭建后台必要的东西。
