@@ -1,0 +1,13 @@
+- name: projectname
+  islib: true
+  children:
+  - name: docs
+    islib: false
+  - name: test
+    islib: false
+    children:
+    - name: scripts
+      child:
+      - name: migration
+  docs:
+  - main.py

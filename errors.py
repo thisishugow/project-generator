@@ -1,0 +1,2 @@
+class FolderNameMissedError(Exception):
+    pass

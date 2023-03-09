@@ -1,0 +1,21 @@
+- name: fastapi_app
+  children:
+  - name: docs
+    islib: false
+  - name: routers
+  - name: db 
+    children:
+    - name: migration
+      children:
+      - name: versions 
+      docs:
+      - alembic.ini
+      - README
+      - env.py
+      - script.py.mako
+    children:
+    - base.py
+    - session.py
+  - name: config
+  docs:
+  - main.py
