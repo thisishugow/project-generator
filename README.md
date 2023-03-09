@@ -1,6 +1,6 @@
 # project_generator
-A tool for quick generate a project structure
-## Quick Starting
+A tool to quickly generate a project structure
+## Quickstart
 - Clone the project.  
 ```bash
 git clone https://github.com/thisishugow/project_generator.git
@@ -19,7 +19,7 @@ git clone https://github.com/thisishugow/project_generator.git
   project-generator --target . # --config is optional and has a default=config.yaml
   ```
 ## Configuration  
-Example:  
+Example: demo.yaml  
 ```yaml
 - name: projectname
   islib: true
