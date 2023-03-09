@@ -1,0 +1,2 @@
+[console_scripts]
+project-generator = project_generator.main:main

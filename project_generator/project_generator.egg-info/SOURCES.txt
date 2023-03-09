@@ -1,0 +1,10 @@
+pyproject.toml
+project_generator/project_generator.egg-info/PKG-INFO
+project_generator/project_generator.egg-info/SOURCES.txt
+project_generator/project_generator.egg-info/dependency_links.txt
+project_generator/project_generator.egg-info/entry_points.txt
+project_generator/project_generator.egg-info/requires.txt
+project_generator/project_generator.egg-info/top_level.txt
+project_generator/templates/__init__.py
+project_generator/templates/demo.yaml
+project_generator/templates/fastapi.yaml

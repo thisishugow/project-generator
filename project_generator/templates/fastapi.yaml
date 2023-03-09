@@ -13,7 +13,7 @@
       - README
       - env.py
       - script.py.mako
-    children:
+    docs:
     - base.py
     - session.py
   - name: config
