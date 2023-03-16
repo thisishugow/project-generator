@@ -5,7 +5,7 @@ import { config } from '@vue/test-utils'
 
 const getDefaultState = () => {  
   return {
-    token: getToken(),
+    token: '',
     name: '',
     avatar: '',
     roles:''
@@ -36,23 +36,13 @@ const mutations = {
 const actions = {
   // user login
   login({ commit }, userInfo) {
-    console.log("Set the token...")
     const { username, password } = userInfo 
-    login({ username: username.trim(), password: password }).then(response=>{ // call /src/utils/request.js-response()
-      const test_data = response
-      console.log("this is test data: "+test_data) 
-    }    
-    )
-    
+   
     return new Promise((resolve, reject) => {
       login({ username: username.trim(), password: password }).then(response => {
-        // const { data } = response
-        // console.log(response)
-        const token_data = response.access_token
-        // data = response.access_token
+        const token_data = response.data['access_token'] //! api retuns key 'access_token'
         commit('SET_TOKEN', token_data)
-        setToken(token_data)
-        window.localStorage.setItem("loginData", token_data)
+        setToken(token_data) //! DO NOT REMOVE
         resolve()
       }).catch(error => {
         reject(error)
@@ -62,18 +52,12 @@ const actions = {
 
   // get user info
   getInfo({ commit, state }) {
-    let data = window.localStorage.getItem("loginData")
-    console.log(state)
+    
     return new Promise((resolve, reject) => {
-      // data = window.localStorage.getItem("loginData")
-      // commit("SET_ROLES", roles)
-      // commit("SET_NAME", name)
-      // commit("SET_AVATAR", avatar)
-      // resolve({roles, name, avatar})
       getInfo(state.token).then(response => {
-        const { data } = response
-        let roles = data.roles
-        let name = data.name
+        const  { data }  = response
+        let roles = data.role
+        let name = data.username
         let avatar = "https://www.baidu.com/img/flexible/logo/pc/result.png"
         if (!data) {
           return reject('Verification failed, please Login again.')

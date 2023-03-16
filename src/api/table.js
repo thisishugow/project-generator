@@ -1,9 +1,10 @@
 import request from '@/utils/request'
 
-export function getList(params) {
+export function queryColumnList(table_name) {
   return request({
-    url: '/vue-admin-template/table/list',
+    url: '/query/columns',
     method: 'get',
-    params
-  })
+    headers: { 'accept': 'application/json'},
+    params: {table_name}
+})
 }

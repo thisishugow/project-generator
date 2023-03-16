@@ -149,6 +149,19 @@ export const constantRoutes = [
     ]
   },
 
+  {
+    path: '/split-pane',
+    component: Layout,
+    children: [
+      {
+        path: 'index',
+        name: 'split-pane',
+        component: () => import('@/views/splitpane/split-pane'),
+        meta: { title: 'split-pane', icon: 'list' }
+      }
+    ]
+  },
+
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }
 ]

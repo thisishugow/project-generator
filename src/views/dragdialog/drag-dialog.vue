@@ -1,112 +1,161 @@
 <template>
   <div class="components-container">
-    Article
-    <el-button type="primary" @click="dialogTableVisible = true">
-      open a Drag Dialog
-    </el-button>
-
-    <el-dialog v-el-drag-dialog :visible.sync="dialogTableVisible" title="Quick Selection: " @dragDialog="handleDrag">
-      <!-- <el-select ref="select" v-model="value" placeholder="请选择">
-        <el-option v-for="item in options" :key="item.value" :label="item.label" :value="item.value" />
-      </el-select>
-      <el-table :data="gridData">
-        <el-table-column property="date" label="Date" width="150" />
-        <el-table-column property="name" label="Name" width="200" />
-        <el-table-column property="address" label="Address" />
-      </el-table> -->
-    <div>
-      <el-form ref="form" :model="searchForm" label-width="100px">
-        <el-col :span="10">
-          <el-form-item label="Search name">
-            <el-input v-model="searchForm.name" @keyup.enter.native="filterIt" />
-          </el-form-item>
-        </el-col>
-        <el-col :span="3">
-          <el-button type="filter" @click="filterIt">Filter</el-button>
-        </el-col>
-      </el-form>
-    </div>
-    <br><br><br><br>
-    <div class="editor-container">
-      <dnd-list :list1="list1" :list2="list2" list2-title="Item Pool"  list1-title="Selected" />
-    </div>
-    <el-button type="primary" @click="onSelectAll">
-      → 
-    </el-button>
-    <el-button type="primary" @click="onRemoveAll">
-       ←
-    </el-button>
-    </el-dialog>
-    <div>
-        <ul>
-        <li v-for="t in list1" :key=t>
-        {{ t.author }}: {{t.title}}
-        </li>
-      </ul>
-    </div>
+    <quick-filter
+      :title="String('process')"
+      :alias="String('Process')"
+      :srcData="queryConditions"
+      v-on:listenChild="listenChild"
+    >
+    </quick-filter>
+  
+    <quick-filter
+      :title="String('param_name')"
+      :alias="String('QC Step')"
+      :srcData="queryConditions"
+      v-on:listenChild="listenChild"
+    >
+    </quick-filter>
+    <el-button @click="initSqlStmt" style="float:right "> Execute </el-button>
     <div class="components-container">
-      <complex-table></complex-table>
+      <!-- 
+      //TODO: 傳入complex-table 為 SQL stmt，讓 complex-table 去執行 post 請求。邏輯如下:
+          request('post', sqlStmt).then(response => display(response.data))
+      //TODO: 需要新增一個執行 button，用於條件都選擇完後，最終執行:
+          complex-table 已透過 props 取得 sqlStmt，按下該按鈕後發送 request
+      //TODO: 使用 pharmquer_backend_api 執行 pagination
+          reference: https://uriyyo-fastapi-pagination.netlify.app/  
+      -->
+      <!-- <component v-if="showResult" :is="String('ComplexTable')" :dataReturn="queryRes"> </component> -->
+      <div  v-if="showResult" class="app-container">
+        <el-scrollbar wrap-style="max-height: 40vh;max-width: 90vw" style="border-inline: solid 1px;writing-mode: horizontal-tb;border-inline-color: gray;">
+        <el-table
+        v-loading="listLoading"
+        :data="queryRes"
+        size="mini"
+        border
+        fit
+        highlight-current-row
+        style="width: 100%;"
+        >
+        <el-table-column v-for="col in Object.keys(queryRes[0])" :key="col" v-bind:label="col" v-bind:prop="col" >
+        </el-table-column>
+        </el-table>
+        </el-scrollbar>
+
+    </div>
     </div>
   </div>
 </template>
 
 <script>
-import elDragDialog from '@/directive/el-drag-dialog' // base on element-ui
-import DndList from '@/components/DndList'
-import ComplexTable from '@/views/dragdialog/data-table.vue'
+import elDragDialog from "@/directive/el-drag-dialog"; // base on element-ui
+import DndList from "@/components/DndList";
+import QuickFilter from "@/views/dragdialog/quick-filter.vue";
+import QuickFilterAssembly from "@/views/dragdialog/quick-filter-assembly.vue";
+import {dataWarehouse} from "@/api/data-warehouse"
+import Pagination from '@/components/Pagination' // secondary package based on el-pagination
+import waves from '@/directive/waves' // waves directive
+
+
+import ComplexTable from "@/views/dragdialog/data-table.vue";
 export default {
-  name: 'DragDialogDemo',
-  directives: { elDragDialog },
-  components: { DndList, ComplexTable },
+  name: "DragDialogDemo",
+  directives: { elDragDialog, waves, },
+  components: { DndList, ComplexTable, QuickFilter, QuickFilterAssembly, Pagination },
   data() {
     return {
-      searchForm:{name:''},
-      list1: [],
-      list2: [],
-      listOriginal:[],
-      dialogTableVisible: false,
+      listLoading:true,
+      // the pool of conditions. 
+      queryConditions: {
+        /* Query conditions, stored as 
+          ```
+          {'<column 1>':{
+              'selected':[], // list, seleted items. 
+              'unselected':[], // list, the pool of items waiting to be selected. 
+              'datatype':<['numeric', 'varchar', 'timestamp']>, // str, data type, must be corresponded to the data type in the database.
+              'operator':<['eq', 'in', 'le', 'ge', 'ne', 'nin']>,
+              'alias':'<Column name to display>'
+            }, //str, eq:=, in:in, le:<=, ge:>=, nin:not in
+           '<column 2>':{'selected':[], 'unselected':[]...}
+          }
+          ```
+        */
+        process: {
+          // unselected: [],
+          selected: [],
+          operator: "eq",
+          datatype: "varchar",
+          alias: "Process",
+        },
+        param_name: {
+          // unselected: [],
+          selected: [],
+          operator: "eq",
+          datatype: "varchar",
+          alias: "QC Step",
+        },
+      },
+      sqlStmt: "",
+      targetTable: "pharmquer.demo_data",
+      queryRes:[],
+      showResult:false,
+      listQuery: {
+        page: 1,
+        limit: 20
+      },
+      total: 0,
+      dataPaged:[],
 
-    }
+    };
+  },
+  watch: {
   },
   created() {
-    this.getData()
+    // this.getData();
   },
   methods: {
     // v-el-drag-dialog onDrag callback function
     handleDrag() {
-      this.$refs.select.blur()
+      this.$refs.select.blur();
     },
+    // add a new quickFilterAssebly
+    addQuickFilterAssembly() {
+      this.filterComponents.push(this.filterComponents.length);
+    },
+    // pop out a quick quickFilterAssebly
+    popQuickFilterAssembly() {
+      this.filterComponents.pop(1);
+    },
+    // * function for testing.
+    // initialize the testing data.
     getData() {
-      this.listLoading = true
-      var samplePool = [{"title": "C-test1", "id": 0, "author":"author1"},
-                    {"title": "A-test2", "id": 1, "author":"author1"},
-                    {"title": "B-test3", "id": 2, "author":"author1"},
-                    {"title": "C-test4", "id": 3, "author":"author2"},
-                    {"title": "D-test5", "id": 4, "author":"author2"},
-                    {"title": "A-test6", "id": 5, "author":"author3"}
-                    ]
-      this.listOriginal = samplePool
-      this.list1 = []
-      this.list2 = samplePool
+      // var samplePool = ["PROC1", "PROC2", "PROC3"];
+      // this.queryConditions.process.unselected = samplePool;
+      // this.queryConditions.param_name.unselected = ['PH', 'WEIGHT'];
     },
-    filterIt(){
-    var filteringItem = this.searchForm.name
-    if (filteringItem){    
-      this.list2 = this.list2.filter(v => {return v.title.startsWith(filteringItem)})
-      console.log(this.list2)
-      }else{
-        this.list2 = this.listOriginal.filter(item => !this.list1.includes(item))
-      }
-    },
-    onSelectAll(){
-      this.list2.forEach(e => this.list1.push(e))
-      this.list2 = []
-    },
-    onRemoveAll(){
-      this.list1.forEach(e => this.list2.push(e))
-      this.list1 = []
-    }
-  }
 
-}
+    // to get the returned from quick-filter-assembly
+    listenChild: function (listToPass) {
+      
+      const { title, selected, operator } = listToPass;
+      this.queryConditions[title]['selected'] = selected
+      this.queryConditions[title]['operator'] = operator
+      
+    },
+    // Initialize `this.queryConditions` to an executable SQL statement.
+    initSqlStmt() {
+      dataWarehouse(this.queryConditions).then(response => {
+        const  { data }  = response
+        if (!data) {
+          return console.log('Query failed.')
+        }
+        this.queryRes = Array(...data)
+        this.listLoading = false
+        this.showResult = true
+      }).catch(error => {
+        console.log(error)
+      })
+    },
+  },
+};
 </script>

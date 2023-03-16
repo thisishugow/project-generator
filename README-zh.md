@@ -6,11 +6,11 @@
 # Version  
 - Version: v0.0.0
 - Description: prototype of pharmquer, containing:
-   > login api  
-   > privilege control  
-   > query form and table-viewer:  
-   > - a selection dialog
-   > - a complex-table conponent  
+   > - login api  
+   > - privilege control  
+   > - query form and table-viewer:  
+   >    - a selection dialog
+   >    - a complex-table conponent  
 
 # vue-admin-template
 

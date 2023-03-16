@@ -3,9 +3,9 @@
     <div :style="{width:width2}" class="dndList-list">
       <h3>{{ list2Title }}</h3>
       <draggable :list="list2" group="article" class="dragArea">
-        <div v-for="element in list2" :key="element.id" class="list-complete-item">
+        <div v-for="element in list2" :key="element" class="list-complete-item">
           <div class="list-complete-item-handle2" @click="pushEle(element)">
-            {{ element.id }} [{{ element.author }}] {{ element.title }}
+            {{ element }}
           </div>
         </div>
       </draggable>
@@ -14,9 +14,9 @@
     <div :style="{width:width1}" class="dndList-list">
       <h3>{{ list1Title }}</h3>
       <draggable :set-data="setData" :list="list1" group="article" class="dragArea">
-        <div v-for="element in list1" :key="element.id" class="list-complete-item">
+        <div v-for="element in list1" :key="element" class="list-complete-item">
           <div class="list-complete-item-handle">
-            {{ element.id }}[{{ element.author }}] {{ element.title }}
+            {{ element }}
           </div>
           <div style="position:absolute;right:0px;">
             <span style="float: right ;margin-top: -20px;margin-right:5px;" @click="deleteEle(element)">
@@ -68,14 +68,14 @@ export default {
   },
   methods: {
     isNotInList1(v) {
-      return this.list1.every(k => v.id !== k.id)
+      return this.list1.every(k => v !== k)
     },
     isNotInList2(v) {
-      return this.list2.every(k => v.id !== k.id)
+      return this.list2.every(k => v !== k)
     },
     deleteEle(ele) {
       for (const item of this.list1) {
-        if (item.id === ele.id) {
+        if (item === ele) {
           const index = this.list1.indexOf(item)
           this.list1.splice(index, 1)
           break
@@ -87,7 +87,7 @@ export default {
     },
     pushEle(ele) {
       for (const item of this.list2) {
-        if (item.id === ele.id) {
+        if (item === ele) {
           const index = this.list2.indexOf(item)
           this.list2.splice(index, 1)
           break
