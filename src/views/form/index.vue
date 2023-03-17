@@ -44,6 +44,7 @@
         <el-button @click="onCancel">Cancel</el-button>
       </el-form-item>
     </el-form>
+    {{form}}
   </div>
 </template>
 

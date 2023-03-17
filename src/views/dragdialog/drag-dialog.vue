@@ -3,9 +3,9 @@
     <split-pane split="horizontal">
       <template slot="paneL">
         <div class="top-container">
-          <aside>
-            Target Table: <strong>{{ tableName }}</strong>
-          </aside>
+            <h2 style="padding:1px;margin:0px"><span style="color:gray;">Query Form: </span>{{ tableName }}</h2>
+            <hr/>
+          
           <quick-filter
             v-for="item in Object.keys(queryConditions)"
             :key="item"
@@ -14,10 +14,16 @@
             :srcData="queryConditions"
             v-on:listenChild="listenChild"
           ></quick-filter>
-          <el-button @click="initSqlStmt" style="float: right">
+          <drag-column-list :columns="columnOrder"></drag-column-list>
+          <sort-column :columns="columnOrder" v-on:listenSortColumn="listenSortColumn" ></sort-column>
+          <el-button v-if="false"  @click="initSqlStmt" style="float:right;" >
             Execute (for test)
           </el-button>
-          <el-button @click="getData" style="float: right"> Execute </el-button>
+          <el-button @click="getData" style="width:100%"> Execute </el-button>
+          <!--TODO : a Reset button is needed. need to reset `list1` in quick-filter -->
+          <!-- <el-button v-if="false" @click="resetFilters" style="width:25%"> Reset </el-button> -->
+
+          
         </div>
       </template>
       <template slot="paneR">
@@ -27,32 +33,38 @@
               Result: <strong>{{ tableName }}</strong>
             </aside>
           </div>
-          <el-scrollbar
-            wrap-style="max-height: 40vh;max-width: 90vw"
-            style="
-              border-inline: solid 1px;
-              writing-mode: horizontal-tb;
-              border-inline-color: gray;
-            "
+          <el-table
+            v-loading="listLoading"
+            :data="queryRes"
+            size="mini"
+            :key="reloadElTable"
+            border
+            fit
+            highlight-current-row
+            style="width: 100%"
+            height="300px"
+            :max-height="400"
+            :show-header="true"
+            :header-row-style="{ height: '30px' }"
+            :header-cell-style="{
+              background: '#f2f2f2',
+              'font-weight': 'bold',
+              color: '#333',
+            }"
+            :row-style="{ height: '25px' }"
+            :cell-style="{ 'padding-top': '0', 'padding-bottom': '0' }"
+            :fixed="true"
+            :scroll-y="200"
           >
-            <el-table
-              v-loading="listLoading"
-              :data="queryRes"
-              size="mini"
-              border
-              fit
-              highlight-current-row
-              style="width: 100%"
+            <el-table-column
+              v-for="col in columnOrder"
+              :key="col"
+              v-bind:label="col"
+              v-bind:prop="col"
+              sortable
             >
-              <el-table-column
-                v-for="col in Object.keys(queryRes[0])"
-                :key="col"
-                v-bind:label="col"
-                v-bind:prop="col"
-              >
-              </el-table-column>
-            </el-table>
-          </el-scrollbar>
+            </el-table-column>
+          </el-table>
           <!--Pagination-->
           <nav style="text-align: center">
             <ul class="pagination">
@@ -92,9 +104,11 @@
 <script>
 import elDragDialog from "@/directive/el-drag-dialog"; // base on element-ui
 import DndList from "@/components/DndList";
+import SortColumn from "@/views/dragdialog/sort-column.vue";
 import QuickFilter from "@/views/dragdialog/quick-filter.vue";
+import DragColumnList from "@/views/dragdialog/drag-column-list.vue";
 import QuickFilterAssembly from "@/views/dragdialog/quick-filter-assembly.vue";
-import { dataWarehouse } from "@/api/data-warehouse";
+import { dataWarehouse, getColumns } from "@/api/data-warehouse";
 import Pagination from "@/components/Pagination"; // secondary package based on el-pagination
 import waves from "@/directive/waves"; // waves directive
 import splitPane from "vue-splitpane";
@@ -110,6 +124,8 @@ export default {
     QuickFilterAssembly,
     Pagination,
     splitPane,
+    DragColumnList,
+    SortColumn,
   },
   data() {
     return {
@@ -146,11 +162,11 @@ export default {
           datatype: "varchar",
           alias: "QC Step",
         },
-        update_dtt:{
-          selected:[],
-          operator:"",
-          datatype:"timestamp",
-          alias: 'Insert On',
+        update_dtt: {
+          selected: [],
+          operator: "",
+          datatype: "timestamp",
+          alias: "Insert On",
         },
       },
       sqlStmt: "",
@@ -166,11 +182,35 @@ export default {
       total: 0, //总的条数
       totalPage: 0, //总的页数
       flag: false,
+      //[<column1>, <column2>, ...]
+      columnOrder:[],
+      // only for el-table's key that is for the component to monitor the update
+      reloadElTable:true,
+      //[ { "name": <columnName>, "order": <["ascending", "descending"]> }, ... ]
+      sortColumns:[],
     };
   },
-  watch: {},
+  watch: {
+    queryConditions: {
+      handler: function (val, oldVal) {
+        this.params.page = 1;
+        this.params.pagesize = 20;
+      },
+      deep: true,
+      immediate: false,
+    },
+    columnOrder:{
+      handler: function (val, oldVal) {
+        this.reloadElTable = !this.reloadElTable
+        
+      },
+      deep: true,
+      immediate: false,
+    }
+  },
   created() {
     // this.getData();
+    this.columnNames()
   },
   computed: {
     pages() {
@@ -226,6 +266,16 @@ export default {
     handleDrag() {
       this.$refs.select.blur();
     },
+    // get columns' name
+    columnNames(){
+      getColumns(this.tableName).then(response =>{
+        this.columnOrder = response.data
+      }
+      ).catch((error)=>{
+        console.log(error)
+      }
+      )
+    },
     // add a new quickFilterAssebly
     addQuickFilterAssembly() {
       this.filterComponents.push(this.filterComponents.length);
@@ -240,10 +290,13 @@ export default {
       this.queryConditions[title]["selected"] = selected;
       this.queryConditions[title]["operator"] = operator;
     },
+    listenSortColumn: function (listToPass) {
+      this.sortColumns = listToPass
+    },
     // Initialize `this.queryConditions` to an executable SQL statement.
     initSqlStmt() {
       const { page, pagesize, name } = this.params;
-      dataWarehouse(this.tableName, this.queryConditions, page, pagesize)
+      dataWarehouse(this.tableName, this.queryConditions, page, pagesize, this.sortColumns )
         .then((response) => {
           const { data } = response;
           // console.log(data)
@@ -264,26 +317,25 @@ export default {
       if (this.flag) return;
       const { page, pagesize, name } = this.params;
       this.flag = true;
-      dataWarehouse(this.tableName, this.queryConditions, page, pagesize)
+      dataWarehouse(this.tableName, this.queryConditions, page, pagesize, this.sortColumns)
         .then((response) => {
           const { data } = response;
           const { result, total_items } = data;
-          if (result.length==0||total_items==0) {
+          if (result.length == 0 || total_items == 0) {
             console.log("Query failed.");
             this.showResult = false;
-          }else{
+          } else {
             this.total = total_items;
             this.totalPage = Math.ceil(this.total / this.params.pagesize);
             this.queryRes = Array(...result);
             this.listLoading = false;
             this.showResult = true;
           }
-          this.flag = false;
-          
         })
         .catch((error) => {
           console.log(error);
         });
+      this.flag = false;
     },
     curPage(page) {
       if (page == "...") return;
@@ -306,6 +358,20 @@ export default {
         ++this.params.page;
         this.getData();
       }
+    },
+    resetFilters(){
+      Object.keys(this.queryConditions).forEach(
+        element => {
+          try{
+            console.log(this.queryConditions[element].selected)
+            this.queryConditions[element]["selected"]=[]
+            this.queryConditions[element].operator='eq'
+            console.log(this.queryConditions[element].selected)
+          }catch(error){
+          console.log(error)
+        }
+        }
+      )
     },
   },
 };
@@ -334,8 +400,9 @@ export default {
 
 .bottom-container {
   width: 100%;
-  /* background-color: #95E1D3; */
+  background-color: #fafafa;
   height: 100%;
+  padding: 10px;
 }
 
 .pagination {
@@ -358,4 +425,13 @@ export default {
   color: #fff;
   background-origin: content-box;
 }
+
+hr {
+    border: 0;
+    padding-top: 1px;
+    /* background: linear-gradient(to right, transparent, #d0d0d5, transparent); */
+    background: linear-gradient(to right, #d0d0d5, transparent);
+}
+
+
 </style>
