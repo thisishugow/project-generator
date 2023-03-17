@@ -2,7 +2,7 @@ import request from '@/utils/request';
 import qs from 'qs';
 import zlib from 'zlib';
 
-export function dataWarehouse(data) {
+export function dataWarehouse(table_name, data, page, page_size) {
   
     return request({
       url: '/v1.0/db/query',
@@ -12,6 +12,11 @@ export function dataWarehouse(data) {
             'Content-Encoding': 'deflate',
         },
       data: zlib.deflateSync(JSON.stringify(data)),
+      params:{
+        table_name:table_name,
+        page:page,
+        page_size:page_size,
+      },
       crossDomain: true,
     })
   }
