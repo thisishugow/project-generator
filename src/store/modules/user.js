@@ -58,7 +58,7 @@ const actions = {
         const  { data }  = response
         let roles = data.role
         let name = data.username
-        let avatar = "https://www.baidu.com/img/flexible/logo/pc/result.png"
+        let avatar = "/static/img/Otis.jpg"
         if (!data) {
           return reject('Verification failed, please Login again.')
         }

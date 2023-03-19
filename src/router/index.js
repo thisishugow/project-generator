@@ -80,6 +80,7 @@ export const constantRoutes = [
   {
     path: '/form',
     component: Layout,
+    hidden: true   ,
     children: [
       {
         path: 'index',
@@ -149,21 +150,8 @@ export const constantRoutes = [
     ]
   },
 
-  {
-    path: '/split-pane',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'split-pane',
-        component: () => import('@/views/splitpane/split-pane'),
-        meta: { title: 'split-pane', icon: 'list' }
-      }
-    ]
-  },
-
   // 404 page must be placed at the end !!!
-  { path: '*', redirect: '/404', hidden: true }
+  // { path: '*', redirect: '/404', hidden: true }
 ]
 
 
@@ -203,6 +191,7 @@ export const asyncRoutes = [
     {
       path: 'external-link',
       component: Layout,
+      hidden: true   ,
       children: [
         {
           path: 'https://panjiachen.github.io/vue-element-admin-site/#/',
@@ -211,56 +200,68 @@ export const asyncRoutes = [
       ]
     },
     {
-      path: '/form-with-permission',
+      path: '/pharm-bi',
       component: Layout,
+      meta: { title: 'Pharm BI', icon: 'el-icon-s-data', roles:['admin']},
+      hidden: false   ,
       children: [
         {
-          path: 'index',
+          path: 'pane',
+          name: 'pharm-bi-pane',
+          component: () => import('@/views/pharm-bi/index'),
+          meta: { title: 'Pharm BI', icon: 'el-icon-s-data', roles:['admin']}
+        },
+        {
+          path: 'flow-editor',
+          name: 'flow-editor',
+          component: () => import('@/views/pharm-bi/components/flow-editor'),
+          meta: { title: 'Flow Editor', icon: 'el-icon-help', roles:['admin']}
+        },
+        {
+          path: 'output',
+          name: 'output',
+          hidden: true,
+          component: () => import('@/views/pharm-bi/components/output'),
+          meta: { title: 'Output', icon: 'el-icon-help', roles:['admin']}
+        },
+      ]
+    },
+    {
+      path: '/data-query',
+      component: Layout,
+      meta: { title: 'Data Query', icon: 'tree-table'},
+      children: [
+        {
+          path: 'sample-data',
+          name: 'drag-dialog',
+          component: () => import('@/views/dragdialog/drag-dialog'),
+          meta: { title: 'Sample Data', icon: 'form' , roles:['admin']}
+        },
+        {
+          path: 'form-with-permission',
           name: 'Form-With-Permission',
           component: () => import('@/views/form/index'),
           meta: { title: 'Form-With-Permission', icon: 'form' , roles:['admin']}
-        }
-      ]
-    },
-    {
-      path: '/draglist',
-      component: Layout,
-      children: [
+        },
         {
-          path: 'index',
+          path: 'draglist',
           name: 'draglist',
+          hidden: true, 
           component: () => import('@/views/draglist/dnd-list'),
           meta: { title: 'draglist', icon: 'form' , roles:['admin']}
-        }
-      ]
-    },
-    {
-      path: '/drag-dialog',
-      component: Layout,
-      children: [
-        {
-          path: 'index',
-          name: 'drag-dialog',
-          component: () => import('@/views/dragdialog/drag-dialog'),
-          meta: { title: 'drag-dialog', icon: 'form' , roles:['admin']}
-        }
-      ]
-    },
-    {
-      path: '/complex-table',
-      component: Layout,
-      children: [
+        },
         {
           path: 'index',
           name: 'complex-table',
+          hidden: true   ,
           component: () => import('@/views/dragdialog/data-table'),
           meta: { title: 'complex-table', icon: 'form' , roles:['admin']}
-        }
+        },
       ]
-    }
+    },
    ]
 
-
+export const  notFound = [{ path: '*', redirect: '/404', hidden: true }]
 const createRouter = () => new Router({
   // mode: 'history', // require service support
   scrollBehavior: () => ({ y: 0 }),
