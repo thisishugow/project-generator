@@ -11,12 +11,18 @@ export default ({
     props:{
 
     },
+    computed:{
+        
+    },
     data() {
         return{
 
         }
     },
     watch:{
+
+    },
+    mounted(){
 
     },
     created(){

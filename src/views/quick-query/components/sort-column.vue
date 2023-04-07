@@ -8,10 +8,11 @@
         dialogTableVisible = true;
         getData();
       "
+      size="mini"
     >
       <i class="el-icon-sort" /> Sort By Column
     </el-button>
-    <el-dialog :visible.sync="dialogTableVisible" title="Sort by Column:" @dragDialog="handleDrag">
+    <el-dialog :visible.sync="dialogTableVisible" title="Sort by Column:" @dragDialog="handleDrag" append-to-body>
       Drag to change the order.
       <draggable :list="form" group="form" class="dragArea">
       <el-form

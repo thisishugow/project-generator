@@ -1,10 +1,10 @@
 <template>
   <div class="quick-filter-item" style="display: inline-block">
     <!--A condition template&-->
-    <el-button style="min-width:15%;" type="info" @click="dialogTableVisible = true">
+    <el-button style="min-width:15%;" type="info" @click="dialogTableVisible = true" size="mini">
       <i class="el-icon-s-tools" /> Column Order
     </el-button>
-    <el-dialog v-el-drag-dialog :visible.sync="dialogTableVisible" title="Column Order:" @dragDialog="handleDrag">
+    <el-dialog v-el-drag-dialog :visible.sync="dialogTableVisible" title="Column Order:" @dragDialog="handleDrag" append-to-body>
         Drag to change the order.
         <draggable :list="columns" group="columns" class="dragArea">
           <div v-for="element in columns" :key="element" class="list-complete-item">

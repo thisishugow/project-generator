@@ -1,10 +1,13 @@
 <template>
   <div class="tab-container">
-    <el-tabs style="margin-top:15px; height:100%; width:100%" type="border-card">
-      <el-tab-pane :label="String('Workspace')" style="height:100%; width:100%" lazy='true'>
+    <el-tabs v-model="activeName" style="margin-top:15px; height:100%; width:100%" type="border-card">
+      <el-tab-pane :label="String('Workspace')" style="height:100%; width:100%" :lazy="true" name="workspace">
           <flow-editor></flow-editor>
+        <div style="display: inline-block; float: right; padding: 1px">
+          <el-button @click="activeName='output'" >Execute</el-button> 
+        </div>
       </el-tab-pane>
-      <el-tab-pane :label="String('Output')" style="height:100%; width:100%" lazy='true'>
+      <el-tab-pane :label="String('Output')" style="height:100%; width:100%" :lazy="true" name="output">
         <output-chart> </output-chart>
       </el-tab-pane>
     </el-tabs> 
@@ -25,7 +28,7 @@ export default {
         { label: 'Japan', key: 'JP' },
         { label: 'Eurozone', key: 'EU' }
       ],
-      activeName: 'CN',
+      activeName: 'workspace',
       createdTimes: 0
     }
   },

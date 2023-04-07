@@ -202,6 +202,7 @@ export const asyncRoutes = [
     {
       path: '/pharm-bi',
       component: Layout,
+      redirect: '/pharm-bi/pane',
       meta: { title: 'Pharm BI', icon: 'el-icon-s-data', roles:['admin']},
       hidden: false   ,
       children: [
@@ -234,7 +235,7 @@ export const asyncRoutes = [
         {
           path: 'sample-data',
           name: 'drag-dialog',
-          component: () => import('@/views/dragdialog/drag-dialog'),
+          component: () => import('@/views/quick-query/index'),
           meta: { title: 'Sample Data', icon: 'form' , roles:['admin']}
         },
         {
@@ -254,7 +255,7 @@ export const asyncRoutes = [
           path: 'index',
           name: 'complex-table',
           hidden: true   ,
-          component: () => import('@/views/dragdialog/data-table'),
+          component: () => import('@/views/quick-query/components/data-table'),
           meta: { title: 'complex-table', icon: 'form' , roles:['admin']}
         },
       ]

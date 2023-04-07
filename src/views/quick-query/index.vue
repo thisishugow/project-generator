@@ -1,6 +1,6 @@
 <template>
   <div class="components-container">
-    <split-pane split="horizontal">
+    <split-pane split="horizontal"  :default-percent="displayResultRatio"> 
       <template slot="paneL">
         <div class="top-container">
           <el-row>
@@ -23,6 +23,9 @@
                     :columns="columnOrder"
                     v-on:listenSortColumn="listenSortColumn"
                   ></sort-column>
+                  <el-button @click="displayLoadQuery=true" type="info" size="mini" ><i class="el-icon-folder-opened" /> Load</el-button>
+                  <el-dialog :visible.sync="displayLoadQuery" append-to-body><load-block :queryConditions="queryConditions" v-on:listenChildLoadBlock="listenChildLoadBlock" /></el-dialog>
+                  <column-display :columns="columnOrder" v-on:listenChildColumnDisplay="listenChildColumnDisplay" style="display:none" />
                   <el-button
                     v-if="false"
                     @click="initSqlStmt"
@@ -48,7 +51,7 @@
             <div slot="header" class="clearfix">
                 <span style="color: gray">Result: <strong>{{ tableName }}</strong></span>
                 <div style="display: inline-block; float: right;">
-                  <el-button>Export to Block</el-button>
+                  <block-docker :queryConditions="queryConditions" :srcTable="tableName"/>
                   <el-button>Download</el-button>
                 </div>
             </div>
@@ -65,7 +68,7 @@
                 height="300px"
                 :max-height="400"
                 :show-header="true"
-                :header-row-style="{ height: '30px' }"
+                :header-row-style="{ height: '25x' }"
                 :header-cell-style="{
                   background: '#f2f2f2',
                   'font-weight': 'bold',
@@ -76,12 +79,22 @@
                 :fixed="true"
                 :scroll-y="200"
               >
+                <el-table-column type="expand">
+                  <template slot-scope="props">
+                      <el-form label-position="left" inline class="demo-table-expand">
+                      <el-form-item v-for="k in Object.keys(props.row)" :key="k" :label="`${k}:`">
+                        <span>{{ props.row[k]}}</span>
+                      </el-form-item>
+                      </el-form>
+                  </template>
+                </el-table-column>
                 <el-table-column
-                  v-for="col in columnOrder"
+                  v-for="col in columnOrder" 
                   :key="col"
                   v-bind:label="col"
                   v-bind:prop="col"
                   sortable
+                  resizable
                 >
                 </el-table-column>
               </el-table>
@@ -129,28 +142,29 @@
 <script>
 import elDragDialog from "@/directive/el-drag-dialog"; // base on element-ui
 import DndList from "@/components/DndList";
-import SortColumn from "@/views/dragdialog/sort-column.vue";
-import QuickFilter from "@/views/dragdialog/quick-filter.vue";
-import DragColumnList from "@/views/dragdialog/drag-column-list.vue";
-import QuickFilterAssembly from "@/views/dragdialog/quick-filter-assembly.vue";
+import SortColumn from "@/views/quick-query/components/sort-column.vue";
+import QuickFilter from "@/views/quick-query/components/quick-filter.vue";
+import ColumnDisplay from '@/views/quick-query/components/column-display.vue';
+import DragColumnList from "@/views/quick-query/components/drag-column-list.vue";
+import LoadBlock from "@/views/quick-query/components/load-block.vue";
+
+import BlockDocker from "./components/block-docker.vue";
 import { dataWarehouse, getColumns } from "@/api/data-warehouse";
-import Pagination from "@/components/Pagination"; // secondary package based on el-pagination
 import waves from "@/directive/waves"; // waves directive
 import splitPane from "vue-splitpane";
 
-import ComplexTable from "@/views/dragdialog/data-table.vue";
 export default {
   name: "DragDialogDemo",
   directives: { elDragDialog, waves },
   components: {
     DndList,
-    ComplexTable,
     QuickFilter,
-    QuickFilterAssembly,
-    Pagination,
     splitPane,
     DragColumnList,
     SortColumn,
+    ColumnDisplay,
+    BlockDocker,
+    LoadBlock,
   },
   data() {
     return {
@@ -191,7 +205,7 @@ export default {
           selected: [],
           operator: "",
           datatype: "timestamp",
-          alias: "Insert On",
+          alias: "Duration",
         },
       },
       sqlStmt: "",
@@ -215,6 +229,9 @@ export default {
       reloadElTable: true,
       //[ { "name": <columnName>, "order": <["ascending", "descending"]> }, ... ]
       sortColumns: [],
+      columnDisplay:[],
+      displayLoadQuery: false,
+      displayResultRatio: 100,
     };
   },
   watch: {
@@ -229,6 +246,12 @@ export default {
     columnOrder: {
       handler: function (val, oldVal) {
         this.reloadElTable = !this.reloadElTable;
+      },
+      deep: true,
+      immediate: false,
+    },
+    columnDisplay: {
+      handler: function (val, oldVal) {
       },
       deep: true,
       immediate: false,
@@ -297,6 +320,7 @@ export default {
       getColumns(this.tableName)
         .then((response) => {
           this.columnOrder = response.data;
+          this.columnDisplay = this.columnOrder
         })
         .catch((error) => {
           console.log(error);
@@ -318,6 +342,13 @@ export default {
     },
     listenSortColumn: function (listToPass) {
       this.sortColumns = listToPass;
+    },
+    listenChildColumnDisplay: function(colDisplayList){
+      this.columnDisplay = colDisplayList
+    },
+    listenChildLoadBlock: function(queryConditionsLoaded){
+      this.queryConditions = queryConditionsLoaded
+      this.getData();
     },
     // Initialize `this.queryConditions` to an executable SQL statement.
     initSqlStmt() {
@@ -374,6 +405,7 @@ export default {
           console.log(error);
         });
       this.flag = false;
+      this.displayResultRatio = 50
     },
     curPage(page) {
       if (page == "...") return;
@@ -408,6 +440,16 @@ export default {
           console.log(error);
         }
       });
+    },
+    columnOrderedDisplay(){
+      let res = []
+      this.columnOrder.forEach(element=>{
+        if(this.columnDisplay.includes(element)){
+          res.push(element)
+        }
+      })
+      console.log(res)
+      return res
     },
   },
 };
@@ -468,4 +510,16 @@ hr {
   /* background: linear-gradient(to right, transparent, #d0d0d5, transparent); */
   background: linear-gradient(to right, #d0d0d5, transparent);
 }
+  .demo-table-expand {
+    font-size: 0;
+  }
+  .demo-table-expand label {
+    width: 90px;
+    color: #99a9bf;
+  }
+  .demo-table-expand .el-form-item {
+    margin-right: 0;
+    margin-bottom: 0;
+    width: 50%;
+  }
 </style>

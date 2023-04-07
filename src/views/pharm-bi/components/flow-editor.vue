@@ -4,40 +4,92 @@
     <el-row>
       <el-card class="box-card" style="background-color: white">
         <div slot="header" class="clearfix">
-          <h3 style="padding:1px;margin:0px"> ANTV X6 V2 </h3>
+          <h3 style="padding: 1px; margin: 0px">ANTV X6 V2</h3>
           <div style="display: inline-block; float: right">
             <el-button>Open</el-button>
             <el-button>Save As</el-button>
             <el-button>Export to Block</el-button>
             <el-button>Download</el-button>
           </div>
-          <div><strong>Workspace: </strong><el-badge style="background-color: #F3F3F3">{{currFigure}}</el-badge></div>
+          <div>
+            <strong>Workspace: </strong
+            ><el-badge style="background-color: #f3f3f3">{{
+              currFigure
+            }}</el-badge>
+          </div>
 
           <div>
-          <el-alert>
-            <strong>AntV X6</strong> is a modern graph visualization library and toolkit,
-            designed to help developers and designers create and interact with
-            various kinds of diagrams and graphs, such as flowcharts, UML
-            diagrams, ER diagrams, org charts, and more.
-          </el-alert>
+            <el-alert>
+              <strong>AntV X6</strong> is a modern graph visualization library
+              and toolkit, designed to help developers and designers create and
+              interact with various kinds of diagrams and graphs, such as
+              flowcharts, UML diagrams, ER diagrams, org charts, and more.
+            </el-alert>
           </div>
         </div>
         <div id="container">
-          <div id="stencil" ref="stencilContainer" style="width: 15%;height: 100%;"></div>
-          <div id="graph-container" ref="graphContainer" style="width: 100%;height: 100%;"></div>
+          <div
+            id="stencil"
+            ref="stencilContainer"
+            style="width: 15%; height: 100%"
+          ></div>
+          <div
+            id="graph-container"
+            ref="graphContainer"
+            style="width: 100%; height: 100%"
+          ></div>
         </div>
-        <div style="display: inline-block; float: right;padding:5px;">
-          <el-button>
+        <div style="display: inline-block; float: right; padding: 5px">
+          <!-- <el-button>
             <a href="#/pharm-bi/output">Execute</a>
-          </el-button>
+          </el-button> -->
         </div>
       </el-card>
     </el-row>
+    <el-dialog :visible.sync="displayQuerySetting" destroy-on-close
+      ><query-setting
+        :graphData="graph"
+        :display="displayQuerySetting"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="querySetting"
+    /></el-dialog>
+    <el-dialog :visible.sync="displayOperation" destroy-on-close>
+      <operation-setting
+        :graphData="graph"
+        :display="displayOperation"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="operationSettnig"
+      >
+      </operation-setting>
+    </el-dialog>
+    <el-dialog :visible.sync="displayPivot" destroy-on-close>
+      <pivot
+        :graphData="graph"
+        :display="displayPivot"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="pivotSetting"
+      >
+      </pivot>
+    </el-dialog>
+    <el-dialog :visible.sync="displayProcess" destroy-on-close>
+      <process-setting
+        :graphData="graph"
+        :display="displayProcess"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="processSetting"
+      >
+      </process-setting>
+    </el-dialog>
   </div>
 </template>
 <script>
-import splitPane from 'vue-splitpane'
-import { Graph, Shape } from "@antv/x6";
+import splitPane from "vue-splitpane";
+import { Graph, Shape, Color } from "@antv/x6";
+import { mapGetters } from "vuex";
 import { Stencil } from "@antv/x6-plugin-stencil";
 import { Transform } from "@antv/x6-plugin-transform";
 import { Selection } from "@antv/x6-plugin-selection";
@@ -45,30 +97,43 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
-import insertCss from "insert-css";
+import QuerySetting from "@/views/pharm-bi/components/query-setting.vue";
+import OperationSetting from "@/views/pharm-bi/components/operation-setting";
+import Pivot from "@/views/pharm-bi/components/pivot-setting";
+import DataProcess from "@/views/pharm-bi/components/process-setting";
+import ProcessSetting from './process-setting.vue';
+// import insertCss from "insert-css";
 
 export default {
   name: "flowEditor",
-  components: {splitPane},
+  components: { splitPane, QuerySetting, OperationSetting, OperationSetting, Pivot, DataProcess, ProcessSetting,},
   props: {
-        currFigure: {
-          type: String,
-          default: '<unnamed>',
-          require: false,
-        }
+    currFigure: {
+      type: String,
+      default: "<unnamed>",
+      require: false,
+    },
   },
   data() {
     return {
-      data: {
-      },
+      data: {},
+      displayQuerySetting: false,
+      displayOperation: false,
+      displayPivot:false,
+      displayProcess:false, 
+      graph: null,
+      nodeId: "",
+      nodeName: "",
     };
   },
   watch: {},
   mounted() {
     this.initGraph();
   },
-  created() {
+  computed: {
+    ...mapGetters(["blocks"]),
   },
+  created() {},
   methods: {
     // preWork() {
     //   // 这里协助演示的代码，在实际项目中根据实际情况进行调整
@@ -80,10 +145,6 @@ export default {
     //   container.appendChild(stencilContainer);
     //   container.appendChild(graphContainer);
     // },
-    test() {
-      // 創建一個新的 DOM 元素，並設定相關屬性和內容
-      console.log("初始畫測試");
-    },
     initGraph() {
       const graphContainer = this.$refs.graphContainer;
       const stencilContainer = this.$refs.stencilContainer;
@@ -91,6 +152,14 @@ export default {
       graphContainer.id = "graph-container";
       const graph = new Graph({
         container: graphContainer,
+        scroller: {
+          enabled: true,
+          pannable: {
+            enabled: true,
+            // 默认情况下只支持左键平移
+            eventTypes: ["leftMouseDown", "rightMouseDown"],
+          },
+        },
         grid: true,
         mousewheel: {
           enabled: true,
@@ -187,6 +256,7 @@ export default {
       const stencil = new Stencil({
         title: "Flow Chart",
         target: graph,
+        scroller: true,
         stencilGraphWidth: 200,
         stencilGraphHeight: 180,
         collapsable: true,
@@ -287,16 +357,40 @@ export default {
           ports[i].style.visibility = show ? "visible" : "hidden";
         }
       };
-      graph.on("node:mouseenter", () => {
+      graph.on("node:mouseenter", (node) => {
         const container = graphContainer;
         const ports = container.querySelectorAll(".x6-port-body");
+        // this.nodeName = this.graph.getCellById( node.id).attrs.text.text
+        // console.log(`mouse enter${this.nodeName}`)
         showPorts(ports, true);
       });
-      graph.on("node:mouseleave", () => {
+      graph.on("node:mouseleave", (node) => {
         const container = graphContainer;
         const ports = container.querySelectorAll(".x6-port-body");
+        // this.nodeName = ''
         showPorts(ports, false);
       });
+      graph.on("cell:contextmenu", ({ node }) => {
+        this.nodeId = node.id;
+        this.nodeName = this.graph.getCellById(node.id).attrs.text.text;
+        const nodeType = this.graph.getCellById(node.id).shape;
+        console.log(node);
+        switch (nodeType) {
+          case "data-polygon":
+            this.displayQuerySetting = true;
+            break;
+          case "operation-rect":
+            this.displayOperation = true;
+            break;
+          case "pivot-rect":
+            this.displayPivot = true;
+            break;
+          case "processing-rect":
+            this.displayProcess = true;
+            break;
+        }
+      });
+
       // #endregion
 
       // #region 初始化图形
@@ -402,38 +496,6 @@ export default {
       );
 
       Graph.registerNode(
-        "custom-polygon",
-        {
-          inherit: "polygon",
-          width: 66,
-          height: 36,
-          attrs: {
-            body: {
-              strokeWidth: 1,
-              stroke: "#5F95FF",
-              fill: "#EFF4FF",
-            },
-            text: {
-              fontSize: 12,
-              fill: "#262626",
-            },
-          },
-          ports: {
-            ...ports,
-            items: [
-              {
-                group: "top",
-              },
-              {
-                group: "bottom",
-              },
-            ],
-          },
-        },
-        true
-      );
-
-      Graph.registerNode(
         "custom-circle",
         {
           inherit: "circle",
@@ -506,6 +568,7 @@ export default {
           body: {
             rx: 20,
             ry: 26,
+            event: "node:contextmenu",
           },
         },
       });
@@ -523,29 +586,312 @@ export default {
         },
         label: "可选过程",
       });
-      const r4 = graph.createNode({
-        shape: "custom-polygon",
-        attrs: {
-          body: {
-            refPoints: "0,10 10,0 20,10 10,20",
-          },
-        },
-        label: "决策",
-      });
-      const r5 = graph.createNode({
-        shape: "custom-polygon",
-        attrs: {
-          body: {
-            refPoints: "10,0 40,0 30,20 0,20",
-          },
-        },
-        label: "数据",
-      });
       const r6 = graph.createNode({
         shape: "custom-circle",
         label: "连接",
       });
-      stencil.load([r1, r2, r3, r4, r5, r6], "group1");
+
+      Graph.registerNode(
+        "data-polygon",
+        {
+          inherit: "polygon",
+          width: 66,
+          height: 36,
+          attrs: {
+            body: {
+              strokeWidth: 1,
+              stroke: "#5F95FF",
+              fill: "#EFF4FF",
+            },
+            title: {
+              text: "Query",
+              refX: 0,
+              refY: 40,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              text: "Block Name",
+              // refX: 5,
+              // refY: 18,
+              fontSize: 10,
+              fill: "#262626",
+              // "text-anchor": "start",
+            },
+          },
+          markup: [
+            {
+              tagName: "polygon",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
+          ports: { ...ports },
+        },
+
+        true
+      );
+
+      const dataPolygon = graph.createNode({
+        shape: "data-polygon",
+        label: "block name",
+        attrs: {
+          body: {
+            refPoints: "10,0 40,0 30,20 0,20",
+            event: "cell:contextmenu",
+          },
+        },
+        // tools: [
+        //   {
+        //     name: "button",
+        //     args: {
+        //       markup: [
+        //         {
+        //           tagName: "circle",
+        //           selector: "button",
+        //           attrs: {
+        //             r: 14,
+        //             stroke: "#fe854f",
+        //             strokeWidth: 2,
+        //             fill: "white",
+        //             cursor: "pointer",
+        //           },
+        //         },
+        //         {
+        //           tagName: "text",
+        //           textContent: "Btn",
+        //           selector: "icon",
+        //           attrs: {
+        //             fill: "#fe854f",
+        //             fontSize: 10,
+        //             textAnchor: "middle",
+        //             pointerEvents: "none",
+        //             y: "0.3em",
+        //           },
+        //         },
+        //       ],
+        //       x: "100%",
+        //       y: "100%",
+        //       offset: { x: -20, y: -20 },
+        //       onClick({ cell }) {
+        //         const fill = Color.randomHex();
+        //         cell.attr({
+        //           body: {
+        //             fill,
+        //           },
+        //           label: {
+        //             fill: Color.invert(fill, true),
+        //           },
+        //         });
+        //       },
+        //     },
+        //   },
+        // ],
+
+        // label: "Query",
+      });
+
+      Graph.registerNode(
+        "operation-rect",
+        {
+          inherit: "rect",
+          width: 66,
+          height: 36,
+          attrs: {
+            body: {
+              strokeWidth: 1,
+              stroke: "#5F95FF",
+              fill: "#EFF4FF",
+              rx: 6,
+              ry: 6,
+            },
+            title: {
+              text: "Operation",
+              refX: 0,
+              refY: 40,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              fontSize: 10,
+              fill: "#262626",
+            },
+          },
+          markup: [
+            {
+              tagName: "rect",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
+          ports: { ...ports },
+        },
+        true
+      );
+      const operationRect = graph.createNode({
+        shape: "operation-rect",
+        attrs: {
+          body: {
+            refPoints: "10,0 40,0 30,20 0,20",
+            event: "cell:contextmenu",
+          },
+        },
+        label: "operation",
+      });
+
+
+      Graph.registerNode(
+        "pivot-rect",
+        {
+          inherit: "rect",
+          width: 66,
+          height: 36,
+          attrs: {
+            body: {
+              strokeWidth: 1,
+              stroke: "#5F95FF",
+              fill: "#EFF4FF",
+              rx: 6,
+              ry: 6,
+            },
+            title: {
+              text: "Pivot",
+              refX: 0,
+              refY: 40,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              fontSize: 10,
+              fill: "#262626",
+            },
+          },
+          markup: [
+            {
+              tagName: "rect",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
+          ports: { ...ports },
+        },
+        true
+      );
+      const pivotRect = graph.createNode({
+        shape: "pivot-rect",
+        attrs: {
+          body: {
+            refPoints: "10,0 40,0 30,20 0,20",
+            event: "cell:contextmenu",
+          },
+        },
+        label: "pivot",
+      });
+
+    Graph.registerNode(
+        "processing-rect",
+        {
+          inherit: "rect",
+          width: 66,
+          height: 36,
+          attrs: {
+            body: {
+              strokeWidth: 1,
+              stroke: "#5F95FF",
+              fill: "#EFF4FF",
+              rx: 6,
+              ry: 6,
+            },
+            title: {
+              text: "Processing",
+              refX: 0,
+              refY: 40,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              fontSize: 10,
+              fill: "#262626",
+            },
+          },
+          markup: [
+            {
+              tagName: "rect",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
+          ports: { ...ports },
+        },
+        true
+      );
+      const processingRect = graph.createNode({
+        shape: "processing-rect",
+        attrs: {
+          body: {
+            refPoints: "10,0 40,0 30,20 0,20",
+            event: "cell:contextmenu",
+          },
+        },
+        label: "processing",
+      });
+
+
+
+      const nodes = [r1, r2, r3, r6, dataPolygon, operationRect, pivotRect, processingRect];
+      stencil.load(nodes, "group1");
+      stencil.resizeGroup("group1", {
+        width: 500,
+        height: 70 * Math.ceil(nodes.length / 2),
+      });
 
       const imageShapes = [
         {
@@ -592,6 +938,7 @@ export default {
       );
       stencil.load(imageNodes, "group2");
       // #endregion
+      this.graph = graph;
     },
   },
 };
