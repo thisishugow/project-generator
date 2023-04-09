@@ -2,6 +2,9 @@
   <div>
     <h1>Pivot</h1>
     <el-row :gutter="16">
+      <div style="padding-top: 5px; padding-bottom: 10px;">
+         Block Name <el-input v-model="blockName" type="text" style="width: 50%" inline></el-input>
+      </div>
       <el-select
         v-model="srcBlockId"
         placeholder="select the block"
@@ -99,7 +102,6 @@
     </el-row>
     <el-row> </el-row>
     <el-button @click="applySetting">Apply</el-button>
-    <div>{{ applied }}</div>
   </div>
 </template>
 <script>
@@ -140,6 +142,7 @@ export default {
   },
   data() {
     return {
+      blockName:'',
       connectedNodes: [],
       srcBlockId: "",
       blockId:'',
@@ -157,7 +160,6 @@ export default {
       handler: function (val, oldVal) {
         this.block = this.graphData.getCellById(val).getData();
         this.getColumns();
-        console.log(this.block);
       },
       deep: true,
     },
@@ -169,6 +171,20 @@ export default {
   methods: {
     init() {
       Object.assign(this.$data, this.$options.data.call(this)); // initialized all $data default values, otherwise the component will show the previous behavior.
+      const appliedSettings = this.graphData.getCellById(this.nodeId).getData()
+      if (appliedSettings){
+        this.colGroupBy = [...appliedSettings.settings.groupby]
+        this.colToRow = appliedSettings.settings.colToRow
+        this.srcBlockId = appliedSettings.srcBlockId
+        this.aggrMethod = appliedSettings.settings.aggrMethod
+        this.valueCol = appliedSettings.settings.valueCol
+        this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text;
+
+
+      }else{
+        this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
+        console.log('Create a new block')
+      }
     },
     getConnections(fromEdge) {
       var edges = this.graphData.getConnectedEdges(this.nodeId, { deep: true });
@@ -223,7 +239,9 @@ export default {
           valueCol: this.valueCol,
         };
         this.graphData.getCellById(this.nodeId).setData(this.applied);
-        console.log(this.applied);
+        this.graphData
+        .getCellById(this.nodeId)
+        .setAttrs({ text: { text: this.blockName } });
       });
     },
   },

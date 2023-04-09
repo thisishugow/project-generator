@@ -48,6 +48,7 @@
     </el-row>
     <el-dialog :visible.sync="displayQuerySetting" destroy-on-close
       ><query-setting
+        v-if="displayQuerySetting"
         :graphData="graph"
         :display="displayQuerySetting"
         :nodeId="nodeId"
@@ -56,6 +57,7 @@
     /></el-dialog>
     <el-dialog :visible.sync="displayOperation" destroy-on-close>
       <operation-setting
+        v-if="displayOperation"
         :graphData="graph"
         :display="displayOperation"
         :nodeId="nodeId"
@@ -66,6 +68,7 @@
     </el-dialog>
     <el-dialog :visible.sync="displayPivot" destroy-on-close>
       <pivot
+        v-if="displayPivot"
         :graphData="graph"
         :display="displayPivot"
         :nodeId="nodeId"
@@ -74,8 +77,9 @@
       >
       </pivot>
     </el-dialog>
-    <el-dialog :visible.sync="displayProcess" destroy-on-close>
+    <el-dialog :visible.sync="displayProcess" :destroy-on-close="true">
       <process-setting
+        v-if="displayProcess"
         :graphData="graph"
         :display="displayProcess"
         :nodeId="nodeId"

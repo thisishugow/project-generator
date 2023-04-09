@@ -40,6 +40,10 @@ export default {
       type: String,
       default: "aggr-0",
     },
+    setAlready:{
+
+    },
+
   },
   data() {
     return {
@@ -55,32 +59,49 @@ export default {
         this.initColumnOptions(val);
       },
       deep: true,
-      immediate: true,
+      immediate:true,
     },
     aggrMethod: {
       handler: function (val, oldVal) {
-        this.pipeToParent();
+        if(val){
+          this.pipeToParent();
+        }
       },
     },
     aggregatedCol: {
       handler: function (val, oldVal) {
-        this.pipeToParent();
+        if(val){
+          this.pipeToParent();
+        }
       },
     },
   },
-  created() {},
+  mounted(){
+  },
+  created() {
+    this.init()
+  },
   methods: {
-    async getColumns(queryBlock) {
-      // await getColumns(queryBlock.table, true).then((response) => {
-      //   this.tmpColList = Array()
-      //   response.data.forEach((element) => {
-      //     this.tmpColList.push(element);
-      //   });
-      // });
-      this.tmpColList = this.queryBlock.columns;
+    init() {
+      if (this.setAlready) {
+        const setCondition = this.setAlready.filter(
+          (element) => element.id == this.id
+        )[0];
+        if (setCondition) {
+          this.aggrMethod = setCondition.method
+          this.aggregatedCol = setCondition.column
+        }
+      }
     },
-    async initColumnOptions(block) {
-      await this.getColumns(block);
+    getColumns() {
+      if (this.queryBlock){
+        this.tmpColList = this.queryBlock.columns;
+      }else{
+        this.tmpColList = []
+      }
+    },
+    initColumnOptions(block) {
+      this.getColumns(block);
       this.columns = [...this.tmpColList];
     },
     pipeToParent() {

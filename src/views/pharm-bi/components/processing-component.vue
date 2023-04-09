@@ -53,7 +53,7 @@
         v-model="subEnd"
         size="small"
         :controls="false"
-        :min="subStart+1"
+        :min="subStart + 1"
       />
     </div>
   </div>
@@ -73,6 +73,7 @@ export default {
       type: String,
       default: "aggr-0",
     },
+    setAlready: {},
   },
   computed: {
     isConcat() {
@@ -129,8 +130,35 @@ export default {
       },
     },
   },
-  created() {},
+  created() {
+    this.init()
+  },
   methods: {
+    init() {
+      if (this.setAlready) {
+        const setCondition = this.setAlready.filter(
+          (element) => element.id == this.id
+        )[0];
+        if (setCondition) {
+          console.log("有進來")
+          this.method = setCondition.setting[0];
+          const tmpMethodValid = this.method;
+          switch (tmpMethodValid) {
+            case "DATE":
+              this.processColumn = setCondition.setting[1];
+              break;
+            case "SUBSTR":
+              this.processColumn = setCondition.setting[1];
+              this.subStart = setCondition.setting[2];
+              this.subEnd = setCondition.setting[3];
+              break;
+            case "CONCAT":
+              this.processColumn = [...setCondition.setting].splice(1);
+              break;
+          }
+        }
+      }
+    },
     async getColumns(queryBlock) {
       // await getColumns(queryBlock.table, true).then((response) => {
       //   this.tmpColList = Array()
@@ -138,11 +166,17 @@ export default {
       //     this.tmpColList.push(element);
       //   });
       // });
-      this.tmpColList = this.queryBlock.columns;
+      if (this.queryBlock) {
+        this.tmpColList = this.queryBlock.columns;
+      }
     },
     async initColumnOptions(block) {
-      await this.getColumns(block);
-      this.columns = [...this.tmpColList];
+      this.getColumns(block);
+      if (typeof this.tmpColList == "object") {
+        this.columns = [...this.tmpColList];
+      } else {
+        this.columns = [];
+      }
     },
     pipeToParent() {
       var setting = [];
@@ -165,7 +199,6 @@ export default {
         id: this.id,
         setting: setting,
       });
-      console.log("Pipe to parent");
     },
   },
 };

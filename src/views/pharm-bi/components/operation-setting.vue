@@ -2,6 +2,9 @@
   <div v-if="display">
     <h1>Operation Settings</h1>
     <el-row :gutter="16">
+      <div style="padding-top: 5px; padding-bottom: 10px;">
+         Block Name <el-input v-model="blockName" type="text" style="width: 50%" inline></el-input>
+      </div>
       <el-col>
         <div>
           <el-radio-group
@@ -57,16 +60,12 @@
           <div style="padding-top: 5px; padding-bottom: 5px">ON</div>
           <!-- join conditions component *block begin-->
           <div v-if="operatingBlockL.length > 0">
-            <join-on
-              :queryBlocks="{ queryBlockL: blockLeft, queryBlockR: blockRight }"
-              v-on:listenChildJoin="listenChildJoin"
-            />
-
             <component
               :is="String('join-on')"
               v-for="item in joinComponentsList"
               :key="item"
               :queryBlocks="{ queryBlockL: blockLeft, queryBlockR: blockRight }"
+              :setAlready="joinOnConditions"
               v-bind:id="`${item}`"
               v-on:listenChildJoin="listenChildJoin"
             />
@@ -137,15 +136,13 @@
           {{ colGroupByOptions }}
           <!-- An invisible variable which used to trigger computed() -->
           <p>Aggreate</p>
-          <aggregate-query
-            :queryBlock="blockLeft"
-            v-on:listenChildAggr="listenChildAggr"
-          />
+
           <component
             :is="String('aggregate-query')"
             v-for="item in aggrComponentsList"
             :key="item"
             :queryBlock="blockLeft"
+            :setAlready="groupByAggrConditions"
             v-bind:id="`${item}`"
             v-on:listenChildAggr="listenChildAggr"
           />
@@ -212,7 +209,6 @@
     </el-row>
     <el-row> </el-row>
     <el-button @click="applySetting">Apply</el-button>
-    <div>{{ applied }}</div>
   </div>
 </template>
 <script>
@@ -297,12 +293,13 @@ export default {
   },
   data() {
     return {
+      blockName: "",
       //{name: <block name>, block: <queryConditions>}
       operationAction: "join",
       connectedNodes: [], // the upstream and downstream connected nodes.
       queryBlock: { name: "Select a query", block: {} },
       openQuery: false,
-      blockId:'',
+      blockId: "",
       operatingBlockL: "", // ther name of the block from left
       operatingBlockR: "", // the name of the block from right
       aggregatedCol: "", // the columns that used in aggregation.
@@ -329,37 +326,43 @@ export default {
   watch: {},
   mounted() {},
   created() {
-    this.$watch("nodeName", () => {
-      this.init();
-      this.$forceUpdate();
-    });
     this.init();
   },
   methods: {
     init() {
-      Object.assign(this.$data, this.$options.data.call(this)); // initialized all $data default values, otherwise the component will show the previous behavior.
       if (this.nodeName.length > 0) {
         this.queryBlock.name = this.nodeName;
         const appliedSettings = this.graphData
           .getCellById(this.nodeId)
           .getData();
-        console.log(this.nodeId);
         if (typeof appliedSettings !== "undefined") {
           this.operationAction = appliedSettings.operation.type;
+          this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text;
           if (this.operationAction == "group") {
             this.operatingBlockL = appliedSettings.operation.blockNames[0];
             this.colGroupBy = appliedSettings.groupby;
+            appliedSettings.groupByAggrConditions.forEach((element, index) => {
+              this.groupByAggrConditions.push(element);
+              this.aggrComponentsList.push(`aggr-${index}`);
+            });
           } else {
             this.operatingBlockL = appliedSettings.operation.blockNames[0];
             this.operatingBlockR = appliedSettings.operation.blockNames[1];
-            this.joinOnConditions = appliedSettings.settings;
+            // Data example:  {id:this.id, joinOn:[this.colJoinOnL, this.colJoinOnR]}
+            appliedSettings.settings.forEach((element, index) => {
+              this.joinOnConditions.push(element);
+              this.joinComponentsList.push(element.id);
+            });
             this.joinMethod = appliedSettings.joinMethod;
           }
         } else {
-          console.log("測試測試A new block");
+          console.log("A new block");
+          this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
+          this.aggrComponentsList = [];
+          this.joinComponentsList = [];
+          this.aggrComponentsList.push("aggr-0");
+          this.joinComponentsList.push("join-0");
         }
-      } else {
-        return;
       }
     },
     /**
@@ -410,7 +413,6 @@ export default {
       if (this.operationAction === "join") {
         const leftBlock = this.getBlockByName(this.operatingBlockL);
         const rightBlock = this.getBlockByName(this.operatingBlockR);
-        console.log(this.joinOnConditions.map(({ id, joinOn }) => [...joinOn]));
         await makeJoin({
           left: leftBlock.stmt,
           right: rightBlock.stmt,
@@ -430,7 +432,6 @@ export default {
         });
       } else {
         const { stmt, columns } = this.getBlockByName(this.operatingBlockL);
-        console.log(this.groupByAggrConditions);
         const _aggregationList = this.groupByAggrConditions.map(
           ({ method, column }) => [method, column]
         );
@@ -443,10 +444,11 @@ export default {
         await makeGroupby(reqData).then((response) => {
           const stmt = response.data.stmt;
           const columns = response.data.columns;
-          this.blockId = this.nodeId
-          this.applied.blockId = this.nodeId
+          this.blockId = this.nodeId;
+          this.applied.blockId = this.nodeId;
           this.applied.operation.blockNames = [this.operatingBlockL];
           this.applied.settings = [..._aggregationList];
+          this.applied.groupByAggrConditions = [...this.groupByAggrConditions];
           this.applied.groupby = [...this.colGroupBy];
           this.applied.stmt = stmt;
           this.applied.columns = [...columns];
@@ -455,7 +457,7 @@ export default {
 
       this.graphData
         .getCellById(this.nodeId)
-        .setAttrs({ text: { text: this.operationAction } });
+        .setAttrs({ text: { text: this.blockName } });
       this.graphData.getCellById(this.nodeId).setData(this.applied);
       console.log(this.applied);
       this.$message(`Block set to '${this.operationAction}'`);
@@ -471,14 +473,10 @@ export default {
       const idx = this.joinOnConditions.findIndex((element) => {
         element.id === lastItem.id;
       });
-      console.log(this.joinOnConditions);
       this.joinOnConditions.splice(idx, 1);
-      console.log(this.joinOnConditions);
     },
     addAggr() {
-      this.aggrComponentsList.push(
-        `aggr-${this.aggrComponentsList.length + 1}`
-      );
+      this.aggrComponentsList.push(`aggr-${this.aggrComponentsList.length}`);
     },
     // pop out a quick quickFilterAssebly
     popAggr() {
@@ -486,9 +484,7 @@ export default {
       const idx = this.groupByAggrConditions.findIndex((element) => {
         element.id === lastItem.id;
       });
-      console.log(this.groupByAggrConditions);
       this.groupByAggrConditions.splice(idx, 1);
-      console.log(this.groupByAggrConditions);
     },
 
     listenChildAggr: function (val) {
@@ -496,7 +492,7 @@ export default {
         const idx = this.groupByAggrConditions.findIndex(
           (element) => element.id === val.id
         );
-        this.groupByAggrConditions[idx] = val;
+        this.groupByAggrConditions[idx] = deepClone(val);
       } else {
         this.groupByAggrConditions.push(val);
       }

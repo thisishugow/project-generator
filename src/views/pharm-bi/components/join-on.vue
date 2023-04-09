@@ -35,7 +35,10 @@ export default {
     id:{
         type:String,
         default:'join-0',
-    }
+    },
+    setAlready:{
+
+    },
   },
   data() {
     return {
@@ -70,9 +73,21 @@ export default {
       }
   },
   created() {
-
+    this.init()
   },
   methods: {
+    init() {
+      if (this.setAlready) {
+        const setCondition = this.setAlready.filter(
+          (element) => element.id == this.id
+        )[0];
+        if (setCondition) {
+          console.log(setCondition)
+          this.colJoinOnL = setCondition.joinOn[0]
+          this.colJoinOnR = setCondition.joinOn[1]
+        }
+      }
+    },
     async getColumns(queryBlock) {
       // await getColumns(queryBlock.table, true).then((response) => {
       //   this.tmpColList = Array()
