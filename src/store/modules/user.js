@@ -8,7 +8,8 @@ const getDefaultState = () => {
     token: '',
     name: '',
     avatar: '',
-    roles:''
+    roles:'',
+    id:'',
   }
 }
 
@@ -24,6 +25,9 @@ const mutations = {
   },
   SET_NAME: (state, name) => {
     state.name = name
+  },
+  SET_ID: (state, id) => {
+    state.id = id
   },
   SET_AVATAR: (state, avatar) => {
     state.avatar = avatar
@@ -59,6 +63,7 @@ const actions = {
         let roles = data.role
         let name = data.username
         let avatar = "/static/img/Otis.jpg"
+        let id = data.id
         if (!data) {
           return reject('Verification failed, please Login again.')
         }
@@ -66,6 +71,7 @@ const actions = {
         commit('SET_NAME', name)
         commit("SET_ROLES", roles)
         commit('SET_AVATAR', avatar)
+        commit('SET_ID', id)
         resolve({roles, name, avatar})
       }).catch(error => {
         reject(error)

@@ -156,7 +156,7 @@ export default {
         this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text;
       }else{
         this.processingComponentList.push('process-0')
-        this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
+        this.blockName = '**'+ this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
         console.log('Create a new block')
       }
       
@@ -210,10 +210,12 @@ export default {
         this.applied.stmt = data.stmt;
         this.applied.columns = data.columns;
         this.applied.settings = [...this.processingSettingList];
-        this.graphData.getCellById(this.nodeId).setData(this.applied)
+        this.graphData.getCellById(this.nodeId).setData(this.applied,{ overwrite: true })
         this.graphData
         .getCellById(this.nodeId)
         .setAttrs({ text: { text: this.blockName } });
+        this.$message(`Block set to '${this.blockName}'`);
+
       });
     },
     addComponent() {

@@ -2,20 +2,27 @@
   <div class="components-container">
     <div ref="messageContainer"></div>
     <el-row>
-      <el-card class="box-card" style="background-color: white">
+      <el-card class="box-card" style="background-color: white;">
         <div slot="header" class="clearfix">
           <h3 style="padding: 1px; margin: 0px">ANTV X6 V2</h3>
           <div style="display: inline-block; float: right">
-            <el-button>Open</el-button>
-            <el-button>Save As</el-button>
-            <el-button>Export to Block</el-button>
-            <el-button>Download</el-button>
+            <el-button @click="handleSaveAs">File</el-button>
+            <el-dialog title="File" :visible.sync="displaySaveAs">
+              <save-as-page v-if="displaySaveAs" :dashboardList.sync="dashboardList" :graphData.sync="graph" :currFigure.sync="currFigure" :currFigureId.sync="currFigureId"/>
+            </el-dialog>
+            <el-button @click="handleDownload">Download</el-button>
+            <el-button v-if="currFigureId>-1" @click="handleCreateNew">Create New</el-button>
           </div>
           <div>
-            <strong>Workspace: </strong
-            ><el-badge style="background-color: #f3f3f3">{{
+            <el-form v-model="currFigure" label-position="left" inline>
+              <el-form-item label="Workspace">
+                <el-input type="text" size="mini" v-model="currFigure" style="min-width: 300px" ></el-input>
+              </el-form-item>
+            </el-form>
+              <!-- <strong>Workspace: </strong> -->
+            <!-- <el-badge style="background-color: #f3f3f3">{{
               currFigure
-            }}</el-badge>
+            }}</el-badge> -->
           </div>
 
           <div>
@@ -37,8 +44,11 @@
             id="graph-container"
             ref="graphContainer"
             style="width: 100%; height: 100%"
-          ></div>
+          >
+          </div>
         </div>
+          <!-- <el-card id="mimapcontainer" ref="mimapcontainer" style="float: right; width:50%; height:50%"></el-card> -->
+
         <div style="display: inline-block; float: right; padding: 5px">
           <!-- <el-button>
             <a href="#/pharm-bi/output">Execute</a>
@@ -88,6 +98,42 @@
       >
       </process-setting>
     </el-dialog>
+    <el-dialog :visible.sync="displayExport" :destroy-on-close="true">
+      <export-setting
+        v-if="displayExport"
+        :graphData="graph"
+        :display="displayExport"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="exportBlock"
+      >
+      </export-setting>
+    </el-dialog>
+    <el-dialog :visible.sync="displayChart" destroy-on-close fullscreen>
+      <chart-panel
+        v-if="displayChart"
+        :graphData="graph"
+        :display="displayChart"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="chartPanel"
+      ></chart-panel>
+    </el-dialog>
+    <el-dialog
+      title="Dashboard"
+      :visible.sync="displayDashboard"
+      destroy-on-close
+      fullscreen
+    >
+      <dashboard-panel
+        v-if="displayDashboard"
+        :graphData="graph"
+        :display="displayDashboard"
+        :nodeId="nodeId"
+        :nodeName="nodeName"
+        ref="DashboardPanel"
+      ></dashboard-panel>
+    </el-dialog>
   </div>
 </template>
 <script>
@@ -101,33 +147,69 @@ import { Snapline } from "@antv/x6-plugin-snapline";
 import { Keyboard } from "@antv/x6-plugin-keyboard";
 import { Clipboard } from "@antv/x6-plugin-clipboard";
 import { History } from "@antv/x6-plugin-history";
+import { Scroller } from "@antv/x6-plugin-scroller";
 import QuerySetting from "@/views/pharm-bi/components/query-setting.vue";
 import OperationSetting from "@/views/pharm-bi/components/operation-setting";
 import Pivot from "@/views/pharm-bi/components/pivot-setting";
 import DataProcess from "@/views/pharm-bi/components/process-setting";
-import ProcessSetting from './process-setting.vue';
+import ExportBlock from "@/views/pharm-bi/components/example-setting";
+import ProcessSetting from "./process-setting.vue";
+import ExportSetting from "./export-setting.vue";
+import ChartPanel from "./chart-panel";
+import DashboardPanel from "./dashboard-panel";
+import SaveAsPage from "./save-as.vue"
+import { getDashboardList } from "@/api/data-warehouse";
 // import insertCss from "insert-css";
 
 export default {
   name: "flowEditor",
-  components: { splitPane, QuerySetting, OperationSetting, OperationSetting, Pivot, DataProcess, ProcessSetting,},
+  components: {
+    splitPane,
+    QuerySetting,
+    OperationSetting,
+    OperationSetting,
+    Pivot,
+    DataProcess,
+    ProcessSetting,
+    ExportBlock,
+    ExportSetting,
+    ChartPanel,
+    DashboardPanel,
+    SaveAsPage,
+  },
+  beforeRouteLeave (to, from, next) {
+    // 如果使用者確定要離開，則直接調用 next 函數
+    if (confirm('The file would not be saved.\nLeave current page?')) {
+      next()
+    } else {
+      // 如果使用者取消離開，則通過 next(false) 阻止路由離開
+      next(false)
+    }
+  },
   props: {
-    currFigure: {
-      type: String,
-      default: "<unnamed>",
-      require: false,
-    },
+    // currFigure: {
+    //   type: String,
+    //   default: "<unnamed>",
+    //   require: false,
+    // },
   },
   data() {
     return {
+      currFigure: '**<unnamed>',
+      currFigureId: -1,
       data: {},
       displayQuerySetting: false,
       displayOperation: false,
-      displayPivot:false,
-      displayProcess:false, 
+      displayPivot: false,
+      displayProcess: false,
+      displayExport: false,
+      displayChart: false,
+      displayDashboard: false,
+      displaySaveAs: false,
       graph: null,
       nodeId: "",
       nodeName: "",
+      dashboardList: [],
     };
   },
   watch: {},
@@ -135,7 +217,7 @@ export default {
     this.initGraph();
   },
   computed: {
-    ...mapGetters(["blocks"]),
+    ...mapGetters(["blocks", "currentUserId"]),
   },
   created() {},
   methods: {
@@ -152,18 +234,17 @@ export default {
     initGraph() {
       const graphContainer = this.$refs.graphContainer;
       const stencilContainer = this.$refs.stencilContainer;
+      const mimapcontainer = this.$refs.mimapcontainer;
       stencilContainer.id = "stencil";
       graphContainer.id = "graph-container";
       const graph = new Graph({
         container: graphContainer,
-        scroller: {
-          enabled: true,
-          pannable: {
-            enabled: true,
-            // 默认情况下只支持左键平移
-            eventTypes: ["leftMouseDown", "rightMouseDown"],
-          },
+        minimap:{
+          enabled:true,
+          container: mimapcontainer,
         },
+        // panning: {enabled:true, modifiers:'alt'},
+        scaling:{max:3, min:.2},
         grid: true,
         mousewheel: {
           enabled: true,
@@ -235,6 +316,18 @@ export default {
           })
         )
         .use(
+          new Scroller({
+            enabled:true,
+            pannable: {
+              enabled: true,
+            // 默认情况下只支持左键平移,
+              modifiers:'alt',
+              eventTypes: ["leftMouseDown",],
+            },
+            modifiers:['alt'],
+          })
+        )
+        .use(
           new Snapline({
             enabled: true,
           })
@@ -266,11 +359,11 @@ export default {
         collapsable: true,
         groups: [
           {
-            title: "Basic Components",
+            title: "Pipeline Components",
             name: "group1",
           },
           {
-            title: "System Comonents",
+            title: "Output Comonents",
             name: "group2",
             graphHeight: 250,
             layoutOptions: {
@@ -378,6 +471,8 @@ export default {
         this.nodeId = node.id;
         this.nodeName = this.graph.getCellById(node.id).attrs.text.text;
         const nodeType = this.graph.getCellById(node.id).shape;
+        const nodeTitle = this.graph.getCellById(node.id).attrs.title.text;
+        console.log(nodeTitle);
         console.log(node);
         switch (nodeType) {
           case "data-polygon":
@@ -391,6 +486,19 @@ export default {
             break;
           case "processing-rect":
             this.displayProcess = true;
+            break;
+          case "export-rect":
+            this.displayExport = true;
+            break;
+          case "custom-image": // Visualization
+            switch (nodeTitle) {
+              case "Visualize":
+                this.displayChart = true;
+                break;
+              case "Dashboard":
+                this.displayDashboard = true;
+                break;
+            }
             break;
         }
       });
@@ -767,7 +875,6 @@ export default {
         label: "operation",
       });
 
-
       Graph.registerNode(
         "pivot-rect",
         {
@@ -828,7 +935,7 @@ export default {
         label: "pivot",
       });
 
-    Graph.registerNode(
+      Graph.registerNode(
         "processing-rect",
         {
           inherit: "rect",
@@ -888,9 +995,77 @@ export default {
         label: "processing",
       });
 
+      Graph.registerNode(
+        "export-rect",
+        {
+          inherit: "rect",
+          width: 66,
+          height: 36,
+          attrs: {
+            body: {
+              strokeWidth: 1,
+              stroke: "#5F95FF",
+              fill: "#EFF4FF",
+              rx: 20,
+              ry: 26,
+            },
+            title: {
+              text: "Export",
+              refX: 0,
+              refY: 40,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              fontSize: 10,
+              fill: "#262626",
+            },
+          },
+          markup: [
+            {
+              tagName: "rect",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
+          ports: { ...ports },
+        },
+        true
+      );
+      const exportRect = graph.createNode({
+        shape: "export-rect",
+        attrs: {
+          body: {
+            refPoints: "10,0 40,0 30,20 0,20",
+            event: "cell:contextmenu",
+          },
+        },
+        label: "export",
+      });
 
-
-      const nodes = [r1, r2, r3, r6, dataPolygon, operationRect, pivotRect, processingRect];
+      const nodes = [
+        // r1,
+        // r2,
+        // r3,
+        // r6,
+        dataPolygon,
+        operationRect,
+        pivotRect,
+        processingRect,
+        exportRect,
+      ];
       stencil.load(nodes, "group1");
       stencil.resizeGroup("group1", {
         width: 500,
@@ -898,35 +1073,50 @@ export default {
       });
 
       const imageShapes = [
+        // {
+        //   label: "Client",
+        //   image:
+        //     "https://gw.alipayobjects.com/zos/bmw-prod/687b6cb9-4b97-42a6-96d0-34b3099133ac.svg",
+        // },
+        // {
+        //   label: "Http",
+        //   image:
+        //     "https://gw.alipayobjects.com/zos/bmw-prod/dc1ced06-417d-466f-927b-b4a4d3265791.svg",
+        // },
         {
-          label: "Client",
-          image:
-            "https://gw.alipayobjects.com/zos/bmw-prod/687b6cb9-4b97-42a6-96d0-34b3099133ac.svg",
-        },
-        {
-          label: "Http",
-          image:
-            "https://gw.alipayobjects.com/zos/bmw-prod/dc1ced06-417d-466f-927b-b4a4d3265791.svg",
-        },
-        {
-          label: "Api",
+          label: "API",
           image:
             "https://gw.alipayobjects.com/zos/bmw-prod/c55d7ae1-8d20-4585-bd8f-ca23653a4489.svg",
+          title: "API",
         },
+        // {
+        //   label: "Sql",
+        //   image:
+        //     "https://gw.alipayobjects.com/zos/bmw-prod/6eb71764-18ed-4149-b868-53ad1542c405.svg",
+
+        // },
         {
-          label: "Sql",
-          image:
-            "https://gw.alipayobjects.com/zos/bmw-prod/6eb71764-18ed-4149-b868-53ad1542c405.svg",
-        },
-        {
-          label: "Clound",
+          label: "Cloud",
           image:
             "https://gw.alipayobjects.com/zos/bmw-prod/c36fe7cb-dc24-4854-aeb5-88d8dc36d52e.svg",
+          title: "Cloud",
         },
         {
           label: "Mq",
-          image:
-            "https://gw.alipayobjects.com/zos/bmw-prod/2010ac9f-40e7-49d4-8c4a-4fcf2f83033b.svg",
+          // image:
+          //   "https://gw.alipayobjects.com/zos/bmw-prod/2010ac9f-40e7-49d4-8c4a-4fcf2f83033b.svg",
+          image: "/static/img/blocks/pipeline-white.png",
+          title: "MQ",
+        },
+        {
+          label: "Visual",
+          image: "/static/img/blocks/chart.svg",
+          title: "Visualize",
+        },
+        {
+          label: "Dashboard",
+          image: "/static/img/blocks/dashboard-white.svg",
+          title: "Dashboard",
         },
       ];
       const imageNodes = imageShapes.map((item) =>
@@ -937,14 +1127,62 @@ export default {
             image: {
               "xlink:href": item.image,
             },
+            title: {
+              text: item.title,
+              refX: 0,
+              refY: 55,
+              fill: "rgba(0,0,0,0.85)",
+              fontSize: 12,
+              "text-anchor": "start",
+            },
+            text: {
+              fontSize: 10,
+              fill: "#FFFFFF",
+              refX: 0,
+              refY: 8,
+              "text-anchor": "start",
+            },
           },
+          markup: [
+            {
+              tagName: "rect",
+              selector: "body",
+            },
+            {
+              tagName: "image",
+              selector: "image",
+            },
+            {
+              tagName: "text",
+              selector: "title",
+            },
+            {
+              tagName: "text",
+              selector: "text",
+            },
+          ],
         })
       );
       stencil.load(imageNodes, "group2");
+      stencil.resizeGroup("group2", {
+        width: 500,
+        height: 90 * Math.ceil(imageNodes.length / 2),
+      });
       // #endregion
       this.graph = graph;
     },
+    handleSaveAs() {
+      this.displaySaveAs = true;
+      
+    },
+    handleDownload() {},
+    handleCreateNew(){
+      this.$confirm('The current file will not be saved. Sure to create new?','confirm',{
+        confirmButtonText:'Ok', cancelButtonText:'Cancel',
+      }).then(()=>{this.graph.fromJSON({});this.currFigureId=-1;this.currFigure='**<unnamed>'}).catch(()=>{})
+    },
   },
+    
 };
 </script>
 <style scoped>
@@ -955,7 +1193,7 @@ export default {
   min-height: 500px;
 }
 #stencil {
-  width: 200px;
+  min-width: 200px;
   min-height: 500px;
   height: 100%;
   position: relative;

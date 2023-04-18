@@ -357,7 +357,7 @@ export default {
           }
         } else {
           console.log("A new block");
-          this.blockName = this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
+          this.blockName = '**'+ this.graphData.getCellById(this.nodeId).attrs.text.text + '-' + this.nodeId;
           this.aggrComponentsList = [];
           this.joinComponentsList = [];
           this.aggrComponentsList.push("aggr-0");
@@ -458,7 +458,7 @@ export default {
       this.graphData
         .getCellById(this.nodeId)
         .setAttrs({ text: { text: this.blockName } });
-      this.graphData.getCellById(this.nodeId).setData(this.applied);
+      this.graphData.getCellById(this.nodeId).setData(this.applied,{ overwrite: true });
       console.log(this.applied);
       this.$message(`Block set to '${this.operationAction}'`);
     },

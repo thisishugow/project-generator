@@ -104,3 +104,135 @@ export function dataProcess( data) {
     crossDomain: true,
   })
 }
+
+
+export function execStmt(data, limit){
+  return request({
+    url:'/v1.0/db/exec_stmt',
+    method: 'post',
+    data : JSON.stringify(data),
+    params:{
+      limit:limit,
+    },
+    crossDomain: true,
+    timeout: 120000,
+  }
+
+  )
+}
+
+export function getDashboardList(userId, jobId=-1){
+  let params = {}
+  if(jobId>0){
+    params = {job_id:jobId, update_by:userId}
+  }else{
+    params = {update_by:userId}
+  }
+  return request(
+    { url:'/v1.0/db/get_dashboard_list',
+      method:'get',
+      //data: zlib.deflateSync(JSON.stringify(data)),
+      params: params,
+      crossDomain:true,
+      timeout: 120000,
+    }
+  )
+}
+
+
+/**
+ * Dashboard data.
+ *
+ * @typedef {Object} DashboardData
+ * @property {number} job_id - The ID of the job.
+ * @property {string} sv_name - The name of the service.
+ * @property {string} sv_ver - The version of the service.
+ * @property {string} status - The status of the dashboard.
+ * @property {string} json_file - The JSON file associated with the dashboard.
+ */
+
+/**
+ * Creates a new dashboard.
+ *
+ * @param {DashboardData} data - The dashboard data.
+ * @returns {Promise<object>} - A Promise object containing the new dashboard data.
+ * @throws {Error} - If an error occurs, an error is thrown.
+ */
+export function createDashboard(data){
+
+  return request(
+    { url:'/v1.0/db/create_dashboard',
+      method:'post',
+      data: zlib.deflateSync(JSON.stringify(data)),
+      crossDomain:true,
+      timeout: 120000,
+    }
+  )
+}
+
+export function updateDashboardInfo(id, data){
+  return request(
+    {
+      url:'/v1.0/db/update_dashboard_info',
+      method:'put',
+      data: JSON.stringify(data),
+      params:{ id: id},
+      crossDomain: true,
+      timeout:5000,
+    }
+  )
+}
+
+
+/**
+ * Overwrites an existing dashboard.
+ *
+ * @param {string} id - The ID of the dashboard.
+ * @param {Object} data - An object containing the dashboard data.
+ * @param {string} data.json_file - The JSON file associated with the dashboard.
+ * @returns {Promise<Object>} - A Promise object containing the updated dashboard data.
+ * @throws {Error} - If an error occurs, an error is thrown.
+ */
+export function overwriteDashboard(id, data){
+  return request(
+    {
+      url:'/v1.0/db/overwrite_dashboard',
+      method:'put',
+      data: zlib.deflateSync(JSON.stringify(data)),
+      params:{ id: id},
+      crossDomain: true,
+      timeout:120000,
+    }
+  )
+}
+/**
+ * Gets dashboard data.
+ * 
+ * @param {string} id - The ID of the dashboard.
+ * @returns {Promise<object>} - A Promise object containing the dashboard data.
+ * @throws {Error} - If an error occurs, an error is thrown.
+ */
+export function getDashboard(id){
+  return request(
+    {
+      url:'/v1.0/db/get_dashboard',
+      method:'get',
+      params:{id:id},
+      crossDomain:true,
+      timeout:5000
+    }
+  )
+}
+
+
+export function deleteDashboard(id){
+  return request(
+    {
+      url:'/v1.0/db/delete_dashboard',
+      method:'delete',
+      params:{id:id},
+      crossDomain:true,
+      timeout:5000
+    }
+  )
+}
