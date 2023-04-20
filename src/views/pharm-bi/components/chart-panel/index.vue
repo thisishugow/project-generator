@@ -250,6 +250,8 @@ export default {
         this.chartType = appliedSettings.settings.chartType
         this.result = appliedSettings.settings.chartData
         this.resLimit = appliedSettings.settings.resLimit
+        this.applied.stmt = appliedSettings.stmt
+        this.applied.columns = appliedSettings.columns
       } else {
         this.blockName =
           this.graphData.getCellById(this.nodeId).attrs.text.text +
@@ -296,6 +298,8 @@ export default {
         .setAttrs({ text: { text: this.blockName } });
       this.applied.srcBlockId = this.srcBlockId
       this.applied.blockId = this.nodeId
+      this.applied.stmt = this.applied.stmt
+      this.applied.columns = this.applied.columns
       this.applied.settings = {
         valueCols:this.valueCols,
         dimensionCols:this.dimensionCols,

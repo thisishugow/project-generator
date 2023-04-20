@@ -149,6 +149,11 @@ export const constantRoutes = [
       }
     ]
   },
+  {
+    path: '/dashboard/:id',
+    component: () => import('@/views/pharm-bi/components/dashboard-panel/components/fullscreen-dashboard'),
+    hidden:true,
+  },
 
 
   // 404 page must be placed at the end !!!
@@ -210,12 +215,14 @@ export const asyncRoutes = [
         {
           path: 'pane',
           name: 'pharm-bi-pane',
-          component: () => import('@/views/pharm-bi/index'),
+          component: () => import('@/views/pharm-bi/components/flow-editor'),
+          // component: () => import('@/views/pharm-bi/index'),
           meta: { title: 'Pharm BI', icon: 'el-icon-s-data', roles:['admin']}
         },
         {
           path: 'flow-editor',
           name: 'flow-editor',
+          hidden:true,
           component: () => import('@/views/pharm-bi/components/flow-editor'),
           meta: { title: 'Flow Editor', icon: 'el-icon-help', roles:['admin']}
         },

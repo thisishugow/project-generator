@@ -1,6 +1,6 @@
 <template>
   <div class="dashboard-wrapper">
-    <div class="tool-bar">
+    <div v-if="mode==='edit'" class="tool-bar">
       <div>
         <span class="db-name">{{ dashboard.name }}</span>
         <span>{{ dashboard.desc }}</span>
@@ -18,6 +18,7 @@
     <div>
       <grid-layout
       v-loading="loading"
+      :class="mode==='edit'? vue-grid-layout: 'published'"
       :layout="layout || []"
       :col-num="24"
       :row-height="30"
@@ -56,7 +57,7 @@
             </div>
           </div>
           <!-- <visualize-panel :key="item.index" :ref="`chartInstance${item.i}`" :data="results[item.i]" :schema="getChartItem(item.i).content.allSelected" :chart-type.sync="getChartItem(item.i).content.chartType" :is-edit-mode="false" :chart-style="{height: `${item.h*30 + 10 * (item.h-1) - 60}px`}" /> -->
-          <graph-panel :key="item.index" :schema="getChartItem(item.i).columns" :data="results[item.i]"  :ref="`chartInstance${item.i}`" :chart-type.sync="getChartItem(item.i).chartType" :is-edit-mode="false" :chart-style="{height: `${item.h*30 + 10 * (item.h-1) - 60}px`}"/>
+          <graph-panel v-if="reloadChart" :key="item.index" :schema="getChartItem(item.i).columns" :data="results[item.i]"  :ref="`chartInstance${item.i}`" :chart-type.sync="getChartItem(item.i).chartType" :is-edit-mode="false" :chart-style="{height: `${item.h*30 + 10 * (item.h-1) - 60}px`}"/>
         </el-card>
       </grid-item>
     </grid-layout>
@@ -130,6 +131,7 @@ export default {
       myChartList: [],
       showChartList: false,
       chartLoading: {},
+      reloadChart:true,
     }
   },
   watch: {
@@ -142,12 +144,16 @@ export default {
     },
     chartDataList:{
       handler(val, oldVal){
+        this.reloadChart = false;
+        this.reloadChart = true;
         // this.getList()
       },
       deep:true,
     },
     layout:{
       handler(val, oldVal){
+        this.reloadChart = false;
+        this.reloadChart = true;
         this.dashboard.content.layout = this.layout
       },
       deep:true,
@@ -369,6 +375,9 @@ export default {
     background: #eee;
     background-image: radial-gradient(rgba(202, 202, 202, 0.671) 1px, transparent 1px);
     background-size: 10px 10px;
+}
+.published {
+  background:#FFFFFF;
 }
 
 </style>

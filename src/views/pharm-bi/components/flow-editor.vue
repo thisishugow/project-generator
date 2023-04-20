@@ -40,12 +40,15 @@
             ref="stencilContainer"
             style="width: 15%; height: 100%"
           ></div>
-          <div
+          <div style="width: 100%; height: 100%">
+            <div
             id="graph-container"
             ref="graphContainer"
             style="width: 100%; height: 100%"
           >
           </div>
+          </div>
+          
         </div>
           <!-- <el-card id="mimapcontainer" ref="mimapcontainer" style="float: right; width:50%; height:50%"></el-card> -->
 
@@ -127,12 +130,33 @@
     >
       <dashboard-panel
         v-if="displayDashboard"
+        :currFigure.sync="currFigure"
+        :currFigureId.sync="currFigureId"
+        :dashboardList.sync="dashboardList"
         :graphData="graph"
         :display="displayDashboard"
         :nodeId="nodeId"
         :nodeName="nodeName"
         ref="DashboardPanel"
       ></dashboard-panel>
+    </el-dialog>
+    <el-dialog
+      title="Scheduler"
+      :visible.sync="displayScheduler"
+      destroy-on-close
+      
+    >
+    <scheduler 
+       v-if="displayScheduler"
+      :currFigure.sync="currFigure"
+      :currFigureId.sync="currFigureId"
+      :dashboardList.sync="dashboardList"
+      :graphData="graph"
+      :display="displayScheduler"
+      :nodeId="nodeId"
+      :nodeName="nodeName"
+      ref="Scheduler"
+    />
     </el-dialog>
   </div>
 </template>
@@ -158,6 +182,7 @@ import ExportSetting from "./export-setting.vue";
 import ChartPanel from "./chart-panel";
 import DashboardPanel from "./dashboard-panel";
 import SaveAsPage from "./save-as.vue"
+import Scheduler from './scheduler.vue'
 import { getDashboardList } from "@/api/data-warehouse";
 // import insertCss from "insert-css";
 
@@ -176,6 +201,7 @@ export default {
     ChartPanel,
     DashboardPanel,
     SaveAsPage,
+    Scheduler,
   },
   beforeRouteLeave (to, from, next) {
     // 如果使用者確定要離開，則直接調用 next 函數
@@ -206,6 +232,7 @@ export default {
       displayChart: false,
       displayDashboard: false,
       displaySaveAs: false,
+      displayScheduler: false,
       graph: null,
       nodeId: "",
       nodeName: "",
@@ -239,6 +266,7 @@ export default {
       graphContainer.id = "graph-container";
       const graph = new Graph({
         container: graphContainer,
+        autoResize:true,
         minimap:{
           enabled:true,
           container: mimapcontainer,
@@ -497,6 +525,9 @@ export default {
                 break;
               case "Dashboard":
                 this.displayDashboard = true;
+                break;
+              case "Scheduler":
+                this.displayScheduler = true;
                 break;
             }
             break;
@@ -1088,6 +1119,8 @@ export default {
           image:
             "https://gw.alipayobjects.com/zos/bmw-prod/c55d7ae1-8d20-4585-bd8f-ca23653a4489.svg",
           title: "API",
+          enable:false,
+          roles:[],
         },
         // {
         //   label: "Sql",
@@ -1100,6 +1133,8 @@ export default {
           image:
             "https://gw.alipayobjects.com/zos/bmw-prod/c36fe7cb-dc24-4854-aeb5-88d8dc36d52e.svg",
           title: "Cloud",
+          enable:false,
+          roles:[],
         },
         {
           label: "Mq",
@@ -1107,19 +1142,32 @@ export default {
           //   "https://gw.alipayobjects.com/zos/bmw-prod/2010ac9f-40e7-49d4-8c4a-4fcf2f83033b.svg",
           image: "/static/img/blocks/pipeline-white.png",
           title: "MQ",
+          enable:false,
+          roles:[],
         },
         {
           label: "Visual",
           image: "/static/img/blocks/chart.svg",
           title: "Visualize",
+          enable:true,
+          roles:[],
         },
         {
           label: "Dashboard",
           image: "/static/img/blocks/dashboard-white.svg",
           title: "Dashboard",
+          enable:true,
+          roles:[],
+        },
+        {
+          label: "Scheduler",
+          image: "/static/img/blocks/clock.svg",
+          title: "Scheduler",
+          enable:true,
+          roles:[],
         },
       ];
-      const imageNodes = imageShapes.map((item) =>
+      const imageNodes = imageShapes.filter(element=> element.enable).map((item) =>
         graph.createNode({
           shape: "custom-image",
           label: item.label,

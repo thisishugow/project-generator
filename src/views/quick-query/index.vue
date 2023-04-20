@@ -154,7 +154,7 @@ import waves from "@/directive/waves"; // waves directive
 import splitPane from "vue-splitpane";
 
 export default {
-  name: "DragDialogDemo",
+  name: "QuickQuery",
   directives: { elDragDialog, waves },
   components: {
     DndList,
@@ -166,15 +166,12 @@ export default {
     BlockDocker,
     LoadBlock,
   },
-  data() {
-    return {
-      listLoading: true,
-      // target table name
-      tableName: "sample_data",
-      // the pool of conditions.
-      //! queryConditions can be a prop which is an only variable in this component.
-      queryConditions: {
-        /* Query conditions, stored as 
+  props:{
+    tableName:{
+      default:"sample_data",
+    },
+    queryConditions:{
+      /* Query conditions, stored as 
           ```
           {'<column 1>':{
               'selected':[], // list, seleted items. 
@@ -187,6 +184,7 @@ export default {
           }
           ```
         */
+      default:{
         process: {
           // unselected: [],
           selected: [],
@@ -207,7 +205,17 @@ export default {
           datatype: "timestamp",
           alias: "Duration",
         },
-      },
+      }
+    },
+  },
+  data() {
+    return {
+      listLoading: true,
+      // target table name
+      
+      // the pool of conditions.
+      //! queryConditions can be a prop which is an only variable in this component.
+      
       sqlStmt: "",
       queryRes: [],
       showResult: false,

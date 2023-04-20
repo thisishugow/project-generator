@@ -20,6 +20,15 @@ import outputChart from './components/output.vue'
 export default {
   name: 'Tab',
   components: { flowEditor, outputChart },
+  beforeRouteLeave (to, from, next) {
+    // 如果使用者確定要離開，則直接調用 next 函數
+    if (confirm('The file would not be saved.\nLeave current page?')) {
+      next()
+    } else {
+      // 如果使用者取消離開，則通過 next(false) 阻止路由離開
+      next(false)
+    }
+  },
   data() {
     return {
       tabMapOptions: [

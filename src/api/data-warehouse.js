@@ -236,3 +236,29 @@ export function deleteDashboard(id){
     }
   )
 }
+
+
+export function getScheduledDashboard(dashboardId){
+  return request(
+    {
+      url:'/v1.0/db/get_schedule_dashboard',
+      method:'get',
+      params:{uuid:dashboardId},
+      crossDomain:true,
+      timeout:5000
+    }
+  )
+}
+
+
+export function createScheduledDashboard(data){
+  return request(
+    {
+      url:'/v1.0/db/create_schedule_dashboard',
+      method:'post',
+      data:data,
+      crossDomain:true,
+      timeout:5000
+    }
+  )
+}

@@ -19,7 +19,7 @@
             inline
             multiple
             style="width: 80%"
-            :disabled="mode!=='edit'"
+            :disabled="mode !== 'edit'"
           >
             <el-option
               v-for="item in connectedNodesPool"
@@ -31,9 +31,21 @@
           <!-- </el-tooltip> -->
         </el-form-item>
         <el-form-item label="Dashboad Size" style="margin-bottom: 5px">
-          <el-slider v-model="dashboardHeight" :max="1600" :min="500" style="width:80%" :disabled="mode!=='edit'"></el-slider>
+          <el-slider
+            v-model="dashboardHeight"
+            :max="1600"
+            :min="500"
+            style="width: 80%"
+            :disabled="mode !== 'edit'"
+          ></el-slider>
         </el-form-item>
       </el-form>
+      <el-switch
+        v-model="editOn"
+        active-text="Edit"
+        style="float: left; padding-top: 30px; padding-bottom: 30px"
+      />
+
       <!-- <el-dialog title="Dashboard" width="750px" :visible.sync="editDialogVisible">
         <el-form label-width="160px">
           <el-form-item :label="blockName">
@@ -46,22 +58,49 @@
       </el-dialog> -->
     </el-row>
     <el-row>
-      <el-switch v-model="editOn" active-text="Edit" style="float:left;padding-top:30px;padding-bottom:0px"/>
-      <dashboardItem :chartDataList.sync="chartDataList" :dashboard.sync="currentDashboard" :mode="mode" :dashboardHeight.sync="dashboardHeight"/>
+      <dashboardItem
+        :chartDataList.sync="chartDataList"
+        :dashboard.sync="currentDashboard"
+        :mode="mode"
+        :dashboardHeight.sync="dashboardHeight"
+      />
     </el-row>
-    <el-row style="padding-top:5px">
-      <el-button @click="publishDashboard" style="float: right">Publish</el-button>
+    <el-row style="padding-top: 5px">
+      <!-- <span>{{displaySaveAs}}</span>   -->
+      <el-button @click="publishDashboard" style="float: right"
+        >Publish</el-button
+      >
       <el-button @click="applySetting" style="float: right">Apply</el-button>
+      <el-button
+        v-if="sharableLink"
+        type="text"
+        @click="handleShare"
+        style="float: right"
+        ><i class="el-icon-share"></i> Share</el-button
+      >
     </el-row>
+    <el-dialog title="File" :visible.sync="displaySaveAs" append-to-body @close='handleCloseDialog'>
+      <save-as-page
+        v-if="displaySaveAs"
+        :dashboardList.sync="dashboardList"
+        :graphData.sync="graphData"
+        :currFigure.sync="currFigure"
+        :currFigureId.sync="currFigureId"
+      />
+    </el-dialog>
   </div>
 </template>
 <script>
 import draggable from "vuedraggable";
 import dashboardItem from "./components/dashboardItem";
+import saveAsPage from "../save-as.vue";
+import { createScheduledDashboard } from "@/api/data-warehouse";
+import { resolve } from "@antv/x6/lib/registry/router/manhattan/options";
+import { async } from '@antv/x6/lib/registry/marker/async';
 // import { addDashboard, updateDashboard, dashboardList, deleteDashboard, dbOrder } from '@/api/dashboard'
 
 export default {
-  components: { dashboardItem, draggable },
+  components: { dashboardItem, draggable, saveAsPage },
   props: {
     graphData: {
       //   type: Object,
@@ -78,51 +117,55 @@ export default {
       type: String,
       require: false,
     },
+    currFigure: {},
+    currFigureId: {},
+    dashboardList: { type: Array },
   },
   data() {
     return {
+      displaySaveAs: false,
       blockName: "",
       blockId: "",
       srcBlockId: "",
       srcBlockIdList: [],
       block: {},
       blockList: [],
-      chartDataList:[],
+      chartDataList: [],
       dashboardList: [],
       connectedNodes: [],
-      editOn:true,
+      editOn: true,
       currentDashboard: {
         content: {
           layout: [
-              // {
-              //   id: "33011d2f-a7a2-43bb-9fb4-19f372b3bb80",
-              //   x: 0,
-              //   y: 0,
-              //   w: 12,
-              //   h: 9,
-              //   i: "33011d2f-a7a2-43bb-9fb4-19f372b3bb80",
-              //   moved: false,
-              //   yOffSet: 9,
-              //   xOffSet: 12,
-              //   bottomLine: [
-              //     [0, 9],
-              //     [12, 9],
-              //   ],
-              //   topLine: [
-              //     [0, 0],
-              //     [12, 0],
-              //   ],
-              // },
-              // {
-              //   id: "f7320979-1b31-4571-ab46-f409c9aa0e8a",
-              //   x: 12,
-              //   y: 0,
-              //   w: 12,
-              //   h: 9,
-              //   i: "f7320979-1b31-4571-ab46-f409c9aa0e8a",
-              //   moved: false,
-              // },
-            ],
+            // {
+            //   id: "33011d2f-a7a2-43bb-9fb4-19f372b3bb80",
+            //   x: 0,
+            //   y: 0,
+            //   w: 12,
+            //   h: 9,
+            //   i: "33011d2f-a7a2-43bb-9fb4-19f372b3bb80",
+            //   moved: false,
+            //   yOffSet: 9,
+            //   xOffSet: 12,
+            //   bottomLine: [
+            //     [0, 9],
+            //     [12, 9],
+            //   ],
+            //   topLine: [
+            //     [0, 0],
+            //     [12, 0],
+            //   ],
+            // },
+            // {
+            //   id: "f7320979-1b31-4571-ab46-f409c9aa0e8a",
+            //   x: 12,
+            //   y: 0,
+            //   w: 12,
+            //   h: 9,
+            //   i: "f7320979-1b31-4571-ab46-f409c9aa0e8a",
+            //   moved: false,
+            // },
+          ],
         },
         dashboard_id: this.nodeId,
         desc: "",
@@ -134,18 +177,18 @@ export default {
       dbObj: {},
       loading: false,
       isCollapse: false,
-      dashboardHeight:800,
+      dashboardHeight: 800,
       applied: {},
+      sharableLink: "",
     };
   },
-  computed:{
+  computed: {
     connectedNodesPool() {
       this.getConnections("source");
       return this.connectedNodes;
     },
-    mode(){
-
-      return this.editOn? 'edit':'view'
+    mode() {
+      return this.editOn ? "edit" : "view";
     },
   },
   created() {
@@ -160,30 +203,46 @@ export default {
     //   },
     //   deep: true,
     // },
-    srcBlockIdList:{
-      handler: function(val,oldVal){
-        const srcBlockIdList = this.srcBlockIdList
-        var tmpList = []
-        srcBlockIdList.forEach(element=>{
-        tmpList.push(this.graphData.getCellById(element).getData())
-      })
-      this.chartDataList = tmpList
+    srcBlockIdList: {
+      handler: function (val, oldVal) {
+        const srcBlockIdList = this.srcBlockIdList;
+        var tmpList = [];
+        srcBlockIdList.forEach((element) => {
+          tmpList.push(this.graphData.getCellById(element).getData());
+        });
+        this.chartDataList = tmpList;
       },
-      deep:true,
-      immediate:true,
-    }
+      deep: true,
+      immediate: true,
+    },
+    currFigure: {
+      handler: function (val, oldVal) {
+        this.$emit("update:currFigure", val);
+      },
+    },
+    currFigureId: {
+      handler: function (val, oldVal) {
+        this.$emit("update:currFigureId", val);
+      },
+    },
+    dashboardList: {
+      handler: function (val, oldVal) {
+        this.$emit("update:dashboardList", val);
+      },
+    },
   },
   methods: {
     init() {
       const appliedSettings = this.graphData.getCellById(this.nodeId).getData();
-      
+
       if (appliedSettings) {
         this.srcBlockIdList = appliedSettings.srcBlockId;
         this.blockId = appliedSettings.blockId;
-        this.chartDataList = appliedSettings.settings.chartDataList
-        this.currentDashboard = appliedSettings.settings.dashboard
-        this.dashboardHeight = appliedSettings.settings.dashboardHeight
-        this.editOn = false
+        this.chartDataList = appliedSettings.settings.chartDataList; // data and charts stored in chart list
+        this.currentDashboard = appliedSettings.settings.dashboard; // dashboard layout of grid items stored in dashboard.content.layout <Array>.
+        this.dashboardHeight = appliedSettings.settings.dashboardHeight;
+        this.sharableLink = appliedSettings.settings.sharableLink
+        this.editOn = false;
         this.blockName = this.graphData.getCellById(
           this.nodeId
         ).attrs.text.text;
@@ -196,20 +255,108 @@ export default {
       }
     },
     applySetting() {
-      this.applied = {}
-      this.applied.blockId = this.nodeId
-      this.applied.blockName = this.blockName
-      this.applied.srcBlockId = [...this.srcBlockIdList]
+      this.applied = {};
+      this.applied.blockId = this.nodeId;
+      this.applied.blockName = this.blockName;
+      this.applied.srcBlockId = [...this.srcBlockIdList];
       this.applied.settings = {
         dashboard: this.currentDashboard,
         chartDataList: this.chartDataList,
         dashboardHeight: this.dashboardHeight,
-      }
-      this.graphData.getCellById(this.nodeId).setAttrs({ text: { text: this.blockName } });
-      this.graphData.getCellById(this.nodeId).setData(this.applied, { overwrite: true })
-      this.$message(`Block set to '${this.blockName}'`)
+        sharableLink: this.sharableLink,
+      };
+      this.graphData
+        .getCellById(this.nodeId)
+        .setAttrs({ text: { text: this.blockName } });
+      this.graphData
+        .getCellById(this.nodeId)
+        .setData(this.applied, { overwrite: true });
+      this.$message(`Block set to '${this.blockName}'`);
     },
-    publishDashboard(){},
+    handleCloseDialog(){
+      this.displaySaveAs = false
+      this.createPublishedLinkToDb()
+    },
+    publishDashboard() {
+      if (this.currFigureId < 0 || !this.currFigureId) {
+        this.$confirm(
+          "Dashboard must be saved before publishing. Continue?",
+          "Confirm",
+          {
+            confirmButtonText: "Ok",
+            cancelButtonText: "Cancel",
+          }
+        )
+          .then(() => {
+            this.displaySaveAs = true
+          })
+          .catch(() => {});
+      } else {
+        this.$confirm(
+          "Do you want to save the dashboard before publishing?",
+          "Confirm",
+          {
+            confirmButtonText: "Ok",
+            cancelButtonText: "Cancel",
+          }
+        )
+          .then(() => {
+            this.displaySaveAs = true
+          })
+          .catch(() => {
+            this.createPublishedLinkToDb()
+          });
+      }
+    },
+    async createPublishedLinkToDb() {
+      createScheduledDashboard({
+        uuid_uri: this.graphData.getCellById(this.nodeId).id,
+        job_sv_id: this.currFigureId,
+        status: "published",
+        is_enabled: 0,
+        trigger_time: "",
+        subscriber_user_id: "",
+      })
+        .then((response) => {
+          const href = this.$createElement;
+          const link = `http://${location.host}/#/dashboard/${
+            this.graphData.getCellById(this.nodeId).id
+          }`;
+          this.sharableLink = link;
+          this.$msgbox({
+            title: `Sharable Link`,
+            message: href("p", null, [
+              href(
+                "a",
+                {
+                  style: "color: #205cd8",
+                  attrs: { href: link, target: "_blank" },
+                },
+                link
+              ),
+            ]),
+          });
+        })
+        .catch((error) => {
+          console.log(error);
+        });
+    },
+    handleShare() {
+      const href = this.$createElement;
+      this.$msgbox({
+        title: `Sharable Link`,
+        message: href("p", null, [
+          href(
+            "a",
+            {
+              style: "color: #205cd8",
+              attrs: { href: this.sharableLink, target: "_blank" },
+            },
+            this.sharableLink
+          ),
+        ]),
+      });
+    },
     getConnections(fromEdge) {
       var edges = this.graphData.getConnectedEdges(this.nodeId, { deep: true });
       const graph = this.graphData;
@@ -222,7 +369,10 @@ export default {
               return graph.getCellById(edge.source.cell);
             })
             .forEach((element) => {
-              if (!this.connectedNodes.includes(element) && element.attrs.title.text =="Visualize") {
+              if (
+                !this.connectedNodes.includes(element) &&
+                element.attrs.title.text == "Visualize"
+              ) {
                 this.connectedNodes.push(element);
               }
             });

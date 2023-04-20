@@ -35,3 +35,14 @@ export function logout() {
     headers: {'accept': 'application/json'}
   })
 }
+
+
+export function getUserList(){
+  return request({
+    url: '/v1.0/user/get_user_list',
+    method:'get',
+    headers: {'accept': 'application/json'},
+    crossDomain:true,
+  }
+  )
+}

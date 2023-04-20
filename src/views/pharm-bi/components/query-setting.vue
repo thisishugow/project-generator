@@ -16,7 +16,19 @@
           >
           </el-option>
         </el-select>
-        <el-button @click="openQuery = true" title="Create New"
+        <el-dropdown placement="bottom-start"> 
+          <el-button title="Create New"
+          >Create New<i class="el-icon-arrow-down el-icon--right"></i></el-button
+        >
+          <el-dropdown-menu style="min-width:200px;padding:5px">
+            <el-dropdwon-item>
+              <el-button @click="openQuery = true" type="text" title="Sample Data"
+          >Sample Data</el-button
+        >
+            </el-dropdwon-item>
+          </el-dropdown-menu>
+        </el-dropdown>
+        <el-button @click="openQuery = true" title="Create New" v-if="false"
           >Create New</el-button
         >
         <el-dialog
